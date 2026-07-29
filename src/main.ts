@@ -10,6 +10,8 @@ import { AppModule } from './app.module'
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
   app.useLogger(app.get(Logger));
+  // Needed so req.ip / x-forwarded-for reflect the real client behind Railway/proxy.
+  app.getHttpAdapter().getInstance().set('trust proxy', 1);
 
   if (process.env.NODE_ENV !== 'production') {
     const config = new DocumentBuilder()

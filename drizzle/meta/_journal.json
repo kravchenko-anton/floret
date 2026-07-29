@@ -15,6 +15,13 @@
       "when": 1785340000000,
       "tag": "0001_transcripts_youtube_id",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785362695120,
+      "tag": "0002_remarkable_the_leader",
+      "breakpoints": true
     }
   ]
 }

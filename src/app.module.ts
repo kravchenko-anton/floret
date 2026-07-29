@@ -6,6 +6,7 @@ import { AnalyzeModule } from './analyze/analyze.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TranscriptModule } from './transcript/transcript.module';
+import { VoteModule } from './vote/vote.module';
 
 const isProd = process.env.NODE_ENV === 'production';
 
@@ -40,6 +41,7 @@ const isProd = process.env.NODE_ENV === 'production';
     SentryModule.forRoot(),
     TranscriptModule,
     AnalyzeModule,
+    VoteModule,
   ],
   controllers: [AppController],
   providers: [
