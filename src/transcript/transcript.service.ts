@@ -7,6 +7,7 @@ import {
 import { ApifyClient } from 'apify-client';
 import { eq } from 'drizzle-orm';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
+import { cleanCaptionText } from '../analyze/script-format';
 import { db } from '../db';
 import { transcripts, type TranscriptSegment } from '../db/schema';
 
@@ -245,7 +246,8 @@ export class TranscriptService {
 
     const segments: TranscriptSegment[] = [];
     for (const cue of cues) {
-      const text = typeof cue.text === 'string' ? cue.text.trim() : '';
+      const raw = typeof cue.text === 'string' ? cue.text : '';
+      const text = cleanCaptionText(raw);
       if (!text) continue;
 
       const startSec = Number(cue.start);
@@ -279,12 +281,30 @@ export class TranscriptService {
         return null;
       }
 
-      return {
+      const segments = row.segments
+        .map((s) => ({
+          ...s,
+          text: cleanCaptionText(s.text),
+        }))
+        .filter((s) => s.text);
+
+      if (!segments.length) {
+        return null;
+      }
+
+      const result: TranscriptResult = {
         videoId,
         language: row.language ?? undefined,
-        segments: row.segments,
-        text: row.segments.map((s) => s.text).join(' '),
+        segments,
+        text: segments.map((s) => s.text).join(' '),
       };
+
+      // Rewrite dirty cached captions so later reads stay clean.
+      if (row.segments.some((s) => s.text !== cleanCaptionText(s.text))) {
+        void this.writeCache(result);
+      }
+
+      return result;
     } catch (error) {
       this.logger.warn(
         {

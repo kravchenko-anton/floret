@@ -3,10 +3,53 @@ import {
   normalizeHighlightItems,
   snapToWordBounds,
 } from './highlight-normalize';
-import { formatAsSentenceScript, splitIntoSentences } from './script-format';
+import {
+  cleanCaptionText,
+  formatAsSentenceScript,
+  splitIntoSentences,
+} from './script-format';
 import { formatChapterHeader } from './chapters';
 
+describe('cleanCaptionText', () => {
+  it('removes music tags, arrows, and sound cues', () => {
+    expect(
+      cleanCaptionText(
+        'How to get [music] whatever you want. >> [music] >> ask. (laughter)',
+      ),
+    ).toBe('How to get whatever you want. ask.');
+  });
+
+  it('drops segments that are only noise', () => {
+    expect(cleanCaptionText('>> [music] <<')).toBe('');
+  });
+
+  it('cleans a long noisy Jim Rohn-style caption blob', () => {
+    const dirty =
+      'Asking [music] is the beginning of receiving. >> [music] >> Receiving is automatic. >> [laughter] >> Have you got the picture?';
+    expect(cleanCaptionText(dirty)).toBe(
+      'Asking is the beginning of receiving. Receiving is automatic. Have you got the picture?',
+    );
+  });
+});
+
 describe('script-format', () => {
+  it('strips caption noise from analyze script lines', () => {
+    const text = formatAsSentenceScript(
+      {
+        videoId: 'x',
+        segments: [
+          { text: 'How to get [music] whatever you want.', duration: 1000, offset: 0 },
+          { text: '>> ask.', duration: 1000, offset: 1000 },
+          { text: '[music]', duration: 500, offset: 2000 },
+        ],
+        text: 'How to get [music] whatever you want. >> ask. [music]',
+      },
+      [],
+    );
+
+    expect(text).toBe('How to get whatever you want.\nask.');
+  });
+
   it('splits into one sentence per line', () => {
     const text = formatAsSentenceScript(
       {

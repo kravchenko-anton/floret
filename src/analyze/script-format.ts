@@ -1,8 +1,8 @@
-import type { TranscriptResult } from '../transcript/transcript.service';
+import type { TranscriptResult } from '../transcript/transcript.service'
 import {
   formatChapterHeader,
   type VideoChapter,
-} from './chapters';
+} from './chapters'
 
 const CHAPTER_HEADER_RE = /^\d{1,2}:\d{2}(?::\d{2})? {2}.+$/;
 
@@ -34,8 +34,62 @@ function offsetMsToSec(offsetMs: number): number {
   return offsetMs / 1000;
 }
 
+const CAPTION_NOISE_RE =
+  /\[[^\]]*\]|[<>]{2,}|[♪♫♩♬]+|\(\s*(?:music|applause|laughter|laughing|cheers|cheering|silence|inaudible|crosstalk|audience|singing|clapping|noise|sound)\s*\)/i;
+
+/** True when text still contains caption/ASR chrome that should be stripped. */
+export function hasCaptionNoise(text: string): boolean {
+  return CAPTION_NOISE_RE.test(text);
+}
+
+/**
+ * Strip ASR/caption noise so the script is spoken words only:
+ * [music], [laughter], >>, <<, ♪, etc.
+ */
+export function cleanCaptionText(text: string): string {
+  return text
+    .replace(/\[[^\]]*\]/g, ' ')
+    .replace(/[<>]{2,}/g, ' ')
+    .replace(/[♪♫♩♬]+/g, ' ')
+    .replace(
+      /\(\s*(?:music|applause|laughter|laughing|cheers|cheering|silence|inaudible|crosstalk|audience|singing|clapping|noise|sound)\s*\)/gi,
+      ' ',
+    )
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function cleanSegmentText(text: string): string {
-  return text.replace(/\s+/g, ' ').trim();
+  return cleanCaptionText(text);
+}
+
+/** Clean a full multi-line script while preserving chapter layout. */
+export function cleanScriptText(text: string): string {
+  const lines = text.split('\n').map((line) => {
+    if (isChapterHeaderLine(line)) return line.trimEnd();
+    return cleanCaptionText(line);
+  });
+
+  const out: string[] = [];
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i]!;
+    if (line.length > 0) {
+      out.push(line);
+      continue;
+    }
+
+    const prev = out[out.length - 1];
+    const next = lines.slice(i + 1).find((l) => l.length > 0);
+    // Keep a single blank after a chapter header, or before the next chapter.
+    const keep =
+      (prev && isChapterHeaderLine(prev)) ||
+      (next !== undefined && isChapterHeaderLine(next));
+    if (keep && prev !== '') {
+      out.push('');
+    }
+  }
+
+  return out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
 }
 
 /**
@@ -130,11 +184,11 @@ export function formatAsSentenceScript(
   const lines = linesFromTranscript(transcript);
 
   if (!lines.length) {
-    return transcript.text.trim();
+    return cleanScriptText(transcript.text);
   }
 
   if (chapters.length < 2) {
-    return lines.map((s) => s.text).join('\n');
+    return cleanScriptText(lines.map((s) => s.text).join('\n'));
   }
 
   const buckets: string[][] = chapters.map(() => []);
@@ -154,8 +208,8 @@ export function formatAsSentenceScript(
   }
 
   if (!blocks.length) {
-    return lines.map((s) => s.text).join('\n');
+    return cleanScriptText(lines.map((s) => s.text).join('\n'));
   }
 
-  return blocks.join('\n\n');
+  return cleanScriptText(blocks.join('\n\n'));
 }

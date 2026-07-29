@@ -14,6 +14,7 @@ import type { AnalyzeResponseDto } from './dto/analyze-response.dto';
 import { normalizeHighlightItems } from './highlight-normalize';
 import {
   formatAsSentenceScript,
+  hasCaptionNoise,
   isScriptFormattedText,
 } from './script-format';
 
@@ -64,7 +65,11 @@ export class AnalyzeService {
       where: eq(analyses.youtubeId, youtubeId),
     });
 
-    if (cached && isScriptFormattedText(cached.text)) {
+    if (
+      cached &&
+      isScriptFormattedText(cached.text) &&
+      !hasCaptionNoise(cached.text)
+    ) {
       this.logger.info(
         {
           youtubeId,
@@ -81,8 +86,13 @@ export class AnalyzeService {
 
     if (cached) {
       this.logger.info(
-        { youtubeId },
-        'Analyze cache stale (not script-formatted); re-analyzing',
+        {
+          youtubeId,
+          reason: hasCaptionNoise(cached.text)
+            ? 'caption-noise'
+            : 'not-script-formatted',
+        },
+        'Analyze cache stale; re-analyzing',
       );
     } else {
       this.logger.info({ youtubeId }, 'Analyze cache miss; starting analysis');

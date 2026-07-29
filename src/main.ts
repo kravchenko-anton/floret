@@ -1,11 +1,11 @@
-import 'dotenv/config';
-import './instrument';
+import 'dotenv/config'
+import './instrument'
 
-import { NestFactory } from '@nestjs/core';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { apiReference } from '@scalar/nestjs-api-reference';
-import { Logger } from 'nestjs-pino';
-import { AppModule } from './app.module';
+import { NestFactory } from '@nestjs/core'
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
+import { apiReference } from '@scalar/nestjs-api-reference'
+import { Logger } from 'nestjs-pino'
+import { AppModule } from './app.module'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
