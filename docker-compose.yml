@@ -1,0 +1,44 @@
+# Local development only.
+# Railway ignores this file — deploy via Dockerfile and link Railway Postgres
+# so DATABASE_URL is injected automatically.
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-floret}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-floret}
+      POSTGRES_DB: ${POSTGRES_DB:-floret}
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - floret_pg:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB',
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Optional: full local stack. Prefer `npm run start:dev` + `db` for day-to-day work.
+  app:
+    build: .
+    restart: unless-stopped
+    profiles: [full]
+    ports:
+      - '${PORT:-3000}:3000'
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-floret}:${POSTGRES_PASSWORD:-floret}@db:5432/${POSTGRES_DB:-floret}
+      DATABASE_SSL: 'false'
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  floret_pg:
