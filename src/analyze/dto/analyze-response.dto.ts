@@ -25,7 +25,10 @@ export class AnalysisHighlightDto {
 
 export class AnalyzeResponseDto {
   @ApiProperty({
-    example: 'Hey, stop scrolling for a second. Here is why...',
+    example:
+      '0:00  Intro\n\nThis is Shazam algorithm explained in 90 seconds.\nIt all starts when you press this single button.',
+    description:
+      'Transcript as a script: one sentence per line. When the video has chapters/timestamps, sections are prefixed with `MM:SS  Title` (two spaces). Chapter headers are omitted when the video has no timestamps.',
   })
   text: string;
 

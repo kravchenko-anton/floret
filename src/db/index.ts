@@ -7,7 +7,7 @@ function createClient() {
   const url = process.env.DATABASE_URL;
   if (!url) {
     throw new Error(
-      'DATABASE_URL is required. Locally use docker compose; on Railway link a Postgres plugin.',
+      'DATABASE_URL is required. Use a Postgres connection string (local compose or hosted).',
     );
   }
 

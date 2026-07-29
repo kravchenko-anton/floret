@@ -1,6 +1,5 @@
-# Local development only.
-# Railway ignores this file — deploy via Dockerfile and link Railway Postgres
-# so DATABASE_URL is injected automatically.
+# Local Postgres (`db`) for day-to-day `npm run start:dev`.
+# App image is independent: pass DATABASE_URL to any hosted Postgres.
 
 services:
   db:
@@ -24,8 +23,9 @@ services:
       timeout: 5s
       retries: 10
 
-  # Optional: full local stack. Prefer `npm run start:dev` + `db` for day-to-day work.
+  # Production-style app: no local db dependency — set DATABASE_URL to your Postgres link.
   app:
+    image: antonkravchenko1/floret:latest
     build: .
     restart: unless-stopped
     profiles: [full]
@@ -34,11 +34,13 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
-      DATABASE_URL: postgresql://${POSTGRES_USER:-floret}:${POSTGRES_PASSWORD:-floret}@db:5432/${POSTGRES_DB:-floret}
-      DATABASE_SSL: 'false'
-    depends_on:
-      db:
-        condition: service_healthy
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL to your Postgres connection string}
+      DATABASE_SSL: ${DATABASE_SSL:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-}
+      OPENROUTER_HTTP_REFERER: ${OPENROUTER_HTTP_REFERER:-}
+      OPENROUTER_X_TITLE: ${OPENROUTER_X_TITLE:-}
+      YOUTUBE_PROXY_URL: ${YOUTUBE_PROXY_URL:-}
 
 volumes:
   floret_pg:

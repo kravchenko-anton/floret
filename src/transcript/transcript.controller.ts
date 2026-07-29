@@ -37,13 +37,14 @@ export class TranscriptController {
   @ApiOkResponse({ type: TranscriptResponseDto })
   @ApiNotFoundResponse({
     description:
-      'Video unavailable, no transcript, or requested language not available',
+      'Video unavailable, captions disabled, or requested language not available',
   })
   @ApiUnprocessableEntityResponse({
     description: 'Invalid video ID or transcript fetch failed',
   })
   @ApiServiceUnavailableResponse({
-    description: 'YouTube is rate-limiting transcript requests',
+    description:
+      'YouTube is rate-limiting or blocking this IP (set YOUTUBE_PROXY_URL)',
   })
   getTranscript(
     @Param('videoId') videoId: string,

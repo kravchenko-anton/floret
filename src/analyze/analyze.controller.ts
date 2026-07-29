@@ -30,7 +30,8 @@ export class AnalyzeController {
     description: 'Invalid video ID or AI returned invalid analysis JSON',
   })
   @ApiServiceUnavailableResponse({
-    description: 'Transcript unavailable or Cloudflare AI unavailable',
+    description:
+      'YouTube transcript blocked/rate-limited, or OpenRouter unavailable',
   })
   analyze(@Body() body: AnalyzeRequestDto): Promise<AnalyzeResponseDto> {
     return this.analyzeService.analyze(body.videoId);

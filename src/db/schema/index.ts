@@ -1,7 +1,8 @@
-export { videos } from './videos';
-export { transcripts, type TranscriptSegment } from './transcripts';
 export {
   analyses,
   type AnalysisHighlight,
-  type HighlightType,
-} from './analyses';
+  type HighlightType
+} from './analyses'
+export { transcripts, type TranscriptSegment } from './transcripts'
+export { videos } from './videos'
+

@@ -6,15 +6,21 @@ import {
 import { eq } from 'drizzle-orm';
 import { AiService } from '../ai/ai.service';
 import { db } from '../db';
-import {
-  analyses,
-  type AnalysisHighlight,
-  type HighlightType,
-} from '../db/schema';
+import { analyses } from '../db/schema';
 import { TranscriptService } from '../transcript/transcript.service';
+import { fetchVideoChapters } from './chapters';
 import type { AnalyzeResponseDto } from './dto/analyze-response.dto';
+import { normalizeHighlightItems } from './highlight-normalize';
+import {
+  formatAsSentenceScript,
+  isScriptFormattedText,
+} from './script-format';
 
 const SYSTEM_PROMPT = `You analyze YouTube video transcripts for creators.
+The transcript is a SCRIPT:
+- one sentence per line
+- optional chapter headers look like "0:00  Title" (timestamp, two spaces, title) — these are section titles, NOT spoken dialogue
+
 Return ONLY valid JSON (no markdown fences, no commentary) with this exact shape:
 {
   "highlights": [
@@ -24,8 +30,11 @@ Return ONLY valid JSON (no markdown fences, no commentary) with this exact shape
 }
 
 Rules:
-- "start" and "end" are character offsets into the transcript text provided by the user (0-based, end exclusive).
+- "start" and "end" are character offsets into the script text provided by the user (0-based, end exclusive), including newline characters.
 - "quote" must be the exact substring text.slice(start, end).
+- NEVER cut a word in half. Boundaries must fall on whitespace, newlines, or punctuation — not mid-word.
+- Do NOT highlight chapter header lines ("MM:SS  Title"). Highlight spoken sentences only.
+- Prefer whole sentences or whole clauses.
 - type meanings:
   - hook: opening attention grabber
   - rehook: mid-content device that re-engages attention
@@ -52,7 +61,7 @@ export class AnalyzeService {
       where: eq(analyses.youtubeId, youtubeId),
     });
 
-    if (cached) {
+    if (cached && isScriptFormattedText(cached.text)) {
       return {
         text: cached.text,
         highlights: cached.highlights,
@@ -61,26 +70,39 @@ export class AnalyzeService {
     }
 
     const transcript = await this.transcriptService.fetch(youtubeId);
+    const chapters = await fetchVideoChapters(youtubeId);
+    const scriptText = formatAsSentenceScript(transcript, chapters);
 
     const raw = await this.aiService.generateJson(
       SYSTEM_PROMPT,
-      `Transcript text:\n${transcript.text}`,
+      `Script text:\n${scriptText}`,
     );
 
     const parsed = this.parseAiJson(raw);
-    const highlights = this.normalizeHighlights(parsed.highlights, transcript.text);
+    const highlights = this.normalizeHighlights(parsed.highlights, scriptText);
     const analysis = this.normalizeAnalysis(parsed.analysis);
 
-    await db.insert(analyses).values({
-      youtubeId,
-      text: transcript.text,
-      highlights,
-      analysis,
-      model: this.aiService.model,
-    });
+    await db
+      .insert(analyses)
+      .values({
+        youtubeId,
+        text: scriptText,
+        highlights,
+        analysis,
+        model: this.aiService.model,
+      })
+      .onConflictDoUpdate({
+        target: analyses.youtubeId,
+        set: {
+          text: scriptText,
+          highlights,
+          analysis,
+          model: this.aiService.model,
+        },
+      });
 
     return {
-      text: transcript.text,
+      text: scriptText,
       highlights,
       analysis,
     };
@@ -114,41 +136,13 @@ export class AnalyzeService {
   private normalizeHighlights(
     value: unknown,
     text: string,
-  ): AnalysisHighlight[] {
+  ): AnalyzeResponseDto['highlights'] {
+    const highlights = normalizeHighlightItems(value, text);
+
     if (!Array.isArray(value)) {
       throw new UnprocessableEntityException(
         'AI highlights field missing or invalid',
       );
-    }
-
-    const allowed: HighlightType[] = ['hook', 'cta', 'rehook'];
-    const highlights: AnalysisHighlight[] = [];
-
-    for (const item of value) {
-      if (!item || typeof item !== 'object') continue;
-      const row = item as Record<string, unknown>;
-      const type = row.type;
-      const start = row.start;
-      const end = row.end;
-      let quote = row.quote;
-
-      if (typeof type !== 'string' || !allowed.includes(type as HighlightType)) {
-        continue;
-      }
-      if (typeof start !== 'number' || typeof end !== 'number') continue;
-      if (!Number.isFinite(start) || !Number.isFinite(end)) continue;
-      if (start < 0 || end > text.length || start >= end) continue;
-
-      const slice = text.slice(start, end);
-      const normalizedQuote =
-        typeof quote === 'string' && quote.trim() ? slice : slice;
-
-      highlights.push({
-        type: type as HighlightType,
-        start,
-        end,
-        quote: normalizedQuote,
-      });
     }
 
     if (!highlights.length) {

@@ -1,5 +1,4 @@
 import { jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
-import { videos } from './videos';
 
 export type TranscriptSegment = {
   text: string;
@@ -10,9 +9,7 @@ export type TranscriptSegment = {
 
 export const transcripts = pgTable('transcripts', {
   id: uuid('id').defaultRandom().primaryKey(),
-  videoId: uuid('video_id')
-    .notNull()
-    .references(() => videos.id, { onDelete: 'cascade' }),
+  youtubeId: text('youtube_id').notNull().unique(),
   language: text('language'),
   segments: jsonb('segments').$type<TranscriptSegment[]>().notNull(),
   createdAt: timestamp('created_at', { withTimezone: true })

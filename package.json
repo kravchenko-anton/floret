@@ -24,7 +24,9 @@
     "docker:up": "docker compose up -d db",
     "docker:full": "docker compose --profile full up --build -d",
     "docker:down": "docker compose down",
-    "docker:logs": "docker compose logs -f"
+    "docker:logs": "docker compose logs -f",
+    "docker:build": "docker build -t antonkravchenko1/floret:latest .",
+    "docker:push": "docker push antonkravchenko1/floret:latest"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
@@ -34,10 +36,12 @@
     "@openrouter/sdk": "^1.1.19",
     "@scalar/nestjs-api-reference": "^1.2.11",
     "@sentry/nestjs": "^10.69.0",
+    "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
     "postgres": "^3.4.9",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "undici": "^8.9.0",
     "youtube-transcript": "^1.3.1"
   },
   "devDependencies": {
@@ -50,7 +54,6 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^24.0.0",
     "@types/supertest": "^7.0.0",
-    "dotenv": "^17.4.2",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
