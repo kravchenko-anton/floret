@@ -29,7 +29,7 @@ type TimedLine = {
   text: string;
 };
 
-/** youtube-transcript offsets/durations are milliseconds. */
+/** Caption offsets/durations are milliseconds. */
 function offsetMsToSec(offsetMs: number): number {
   return offsetMs / 1000;
 }

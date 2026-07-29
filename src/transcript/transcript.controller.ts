@@ -21,7 +21,7 @@ export class TranscriptController {
   @ApiOperation({
     summary: 'Fetch a YouTube video transcript',
     description:
-      'Returns caption segments and full text for a video ID (or URL-compatible ID). Supports manual and auto-generated captions.',
+      'Returns caption segments and full text via Apify YouTube transcript actor. Results are cached by video ID.',
   })
   @ApiParam({
     name: 'videoId',
@@ -31,20 +31,18 @@ export class TranscriptController {
   @ApiQuery({
     name: 'lang',
     required: false,
-    description: 'Preferred caption language (ISO code)',
+    description: 'Preferred caption language (ISO 639-1 code)',
     example: 'en',
   })
   @ApiOkResponse({ type: TranscriptResponseDto })
   @ApiNotFoundResponse({
-    description:
-      'Video unavailable, captions disabled, or requested language not available',
+    description: 'No captions available for this video',
   })
   @ApiUnprocessableEntityResponse({
-    description: 'Invalid video ID or transcript fetch failed',
+    description: 'Invalid video ID',
   })
   @ApiServiceUnavailableResponse({
-    description:
-      'YouTube is rate-limiting or blocking this IP (set YOUTUBE_PROXY_URL)',
+    description: 'APIFY_TOKEN missing or Apify actor run failed',
   })
   getTranscript(
     @Param('videoId') videoId: string,

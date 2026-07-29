@@ -4,40 +4,41 @@ import {
   ServiceUnavailableException,
   UnprocessableEntityException,
 } from '@nestjs/common';
+import { ApifyClient } from 'apify-client';
 import { eq } from 'drizzle-orm';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
-import {
-  fetchTranscript,
-  YoutubeTranscriptDisabledError,
-  YoutubeTranscriptError,
-  YoutubeTranscriptNotAvailableError,
-  YoutubeTranscriptNotAvailableLanguageError,
-  YoutubeTranscriptTooManyRequestError,
-  YoutubeTranscriptVideoUnavailableError,
-  type TranscriptResponse,
-} from 'youtube-transcript';
 import { db } from '../db';
-import { transcripts } from '../db/schema';
-import { createYoutubeFetch } from './youtube-fetch';
+import { transcripts, type TranscriptSegment } from '../db/schema';
 
 export type TranscriptResult = {
   videoId: string;
   language?: string;
-  segments: TranscriptResponse[];
+  segments: TranscriptSegment[];
   text: string;
 };
 
-const MAX_ATTEMPTS = 3;
-const BASE_DELAY_MS = 2000;
+type ApifyCaptionCue = {
+  start?: string | number;
+  dur?: string | number;
+  text?: string;
+};
+
+type ApifyDatasetItem = {
+  data?: ApifyCaptionCue[];
+  searchResult?: ApifyCaptionCue[];
+  transcript?: ApifyCaptionCue[];
+  error?: string;
+  message?: string;
+};
+
+const DEFAULT_ACTOR_ID = 'pintostudio/youtube-transcript-scraper';
 
 @Injectable()
 export class TranscriptService {
-  private readonly proxyConfigured = Boolean(
-    process.env.YOUTUBE_PROXY_URL?.trim(),
-  );
-  private readonly youtubeFetch = createYoutubeFetch(
-    process.env.YOUTUBE_PROXY_URL?.trim() || undefined,
-  );
+  private readonly actorId =
+    process.env.APIFY_ACTOR_ID?.trim() || DEFAULT_ACTOR_ID;
+  private readonly token = process.env.APIFY_TOKEN?.trim();
+  private client: ApifyClient | null = null;
 
   constructor(
     @InjectPinoLogger(TranscriptService.name)
@@ -49,33 +50,39 @@ export class TranscriptService {
     lang?: string,
   ): Promise<TranscriptResult> {
     const videoId = this.extractVideoId(videoIdOrUrl);
+    const language = lang?.trim() || 'en';
 
-    const cached = await this.readCache(videoId, lang);
+    const cached = await this.readCache(videoId, language);
     if (cached) {
       this.logger.info(
-        { videoId, lang, segments: cached.segments.length },
+        { videoId, lang: language, segments: cached.segments.length },
         'Transcript cache hit',
       );
       return cached;
     }
 
+    if (!this.token) {
+      this.logger.error('APIFY_TOKEN is missing');
+      throw new ServiceUnavailableException('APIFY_TOKEN is required');
+    }
+
     this.logger.info(
-      { videoId, lang, proxyConfigured: this.proxyConfigured },
-      'Fetching transcript from YouTube',
+      { videoId, lang: language, actorId: this.actorId },
+      'Fetching transcript via Apify',
     );
 
-    const segments = await this.fetchWithRetry(videoId, lang);
+    const segments = await this.fetchFromApify(videoId, language);
     const result: TranscriptResult = {
       videoId,
-      language: lang ?? segments[0]?.lang,
+      language,
       segments,
       text: segments.map((s) => s.text).join(' '),
     };
 
     await this.writeCache(result);
     this.logger.info(
-      { videoId, language: result.language, segments: segments.length },
-      'Transcript fetched',
+      { videoId, language, segments: segments.length },
+      'Transcript fetched via Apify',
     );
     return result;
   }
@@ -111,88 +118,153 @@ export class TranscriptService {
     );
   }
 
-  private async fetchWithRetry(
+  private getClient(): ApifyClient {
+    if (!this.client) {
+      this.client = new ApifyClient({ token: this.token! });
+    }
+    return this.client;
+  }
+
+  private async fetchFromApify(
     videoId: string,
-    lang?: string,
-  ): Promise<TranscriptResponse[]> {
-    let lastError: unknown;
+    language: string,
+  ): Promise<TranscriptSegment[]> {
+    const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+    const client = this.getClient();
 
-    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-      try {
-        return await fetchTranscript(videoId, {
-          ...(lang ? { lang } : {}),
-          fetch: this.youtubeFetch,
-        });
-      } catch (error) {
-        lastError = error;
-        const errorName =
-          error instanceof Error ? error.constructor.name : typeof error;
-
-        if (!this.isRetryable(error) || attempt === MAX_ATTEMPTS) {
-          this.logger.warn(
-            {
-              videoId,
-              lang,
-              attempt,
-              errorName,
-              proxyConfigured: this.proxyConfigured,
-              message: error instanceof Error ? error.message : String(error),
-            },
-            'Transcript fetch failed',
-          );
-          this.rethrow(error, videoId, lang, attempt);
-        }
-
-        const delayMs = this.backoffMs(attempt);
-        this.logger.warn(
-          {
-            videoId,
-            attempt,
-            nextAttempt: attempt + 1,
-            delayMs,
-            errorName,
-            proxyConfigured: this.proxyConfigured,
-          },
-          'Retrying transcript fetch after YouTube rate-limit/block',
-        );
-        await this.sleep(delayMs);
-      }
+    let run: Awaited<ReturnType<ReturnType<ApifyClient['actor']>['call']>>;
+    try {
+      run = await client.actor(this.actorId).call({
+        videoUrl,
+        targetLanguage: language,
+      });
+    } catch (error) {
+      this.logger.error(
+        {
+          videoId,
+          actorId: this.actorId,
+          message: error instanceof Error ? error.message : String(error),
+        },
+        'Apify actor call failed',
+      );
+      throw new ServiceUnavailableException(
+        `Apify transcript fetch failed for video "${videoId}"`,
+      );
     }
 
-    this.rethrow(lastError, videoId, lang, MAX_ATTEMPTS);
-  }
+    const runStatus = run?.status;
+    const runId = run?.id;
+    const datasetId = run?.defaultDatasetId;
 
-  private isRetryable(error: unknown): boolean {
-    return (
-      error instanceof YoutubeTranscriptTooManyRequestError ||
-      this.looksLikeIpBlock(error)
+    if (runStatus && runStatus !== 'SUCCEEDED') {
+      this.logger.error(
+        { videoId, runId, runStatus, actorId: this.actorId },
+        'Apify actor run did not succeed',
+      );
+      throw new ServiceUnavailableException(
+        `Apify transcript run ${runStatus} for video "${videoId}"`,
+      );
+    }
+
+    if (!datasetId) {
+      this.logger.error(
+        { videoId, runId, runStatus },
+        'Apify run missing dataset id',
+      );
+      throw new ServiceUnavailableException(
+        `Apify returned no dataset for video "${videoId}"`,
+      );
+    }
+
+    let items: ApifyDatasetItem[];
+    try {
+      const listed = await client.dataset(datasetId).listItems();
+      items = (listed.items ?? []) as ApifyDatasetItem[];
+    } catch (error) {
+      this.logger.error(
+        {
+          videoId,
+          runId,
+          datasetId,
+          message: error instanceof Error ? error.message : String(error),
+        },
+        'Failed to read Apify dataset',
+      );
+      throw new ServiceUnavailableException(
+        `Could not read Apify transcript dataset for video "${videoId}"`,
+      );
+    }
+
+    this.logger.info(
+      { videoId, runId, runStatus, itemCount: items.length },
+      'Apify transcript run finished',
     );
+
+    const first = items[0];
+    if (!first) {
+      throw new NotFoundException(
+        `No transcript is available for video "${videoId}"`,
+      );
+    }
+
+    if (first.error || first.message) {
+      this.logger.warn(
+        {
+          videoId,
+          runId,
+          error: first.error,
+          message: first.message,
+        },
+        'Apify dataset item reported an error',
+      );
+    }
+
+    const cues = first.data ?? first.searchResult ?? first.transcript;
+    const segments = this.mapCuesToSegments(cues, language);
+
+    if (!segments.length) {
+      this.logger.warn(
+        { videoId, runId },
+        'Apify returned empty transcript cues',
+      );
+      throw new NotFoundException(
+        `No transcript is available for video "${videoId}"`,
+      );
+    }
+
+    return segments;
   }
 
-  private looksLikeIpBlock(error: unknown): boolean {
-    if (!(error instanceof Error)) return false;
-    const message = error.message.toLowerCase();
-    return (
-      message.includes('captcha') ||
-      message.includes('too many request') ||
-      message.includes('rate') ||
-      /status code 429|status code 403|\b429\b|\b403\b/.test(message)
-    );
-  }
+  private mapCuesToSegments(
+    cues: ApifyCaptionCue[] | undefined,
+    language: string,
+  ): TranscriptSegment[] {
+    if (!Array.isArray(cues) || !cues.length) {
+      return [];
+    }
 
-  private backoffMs(attempt: number): number {
-    const exp = BASE_DELAY_MS * 2 ** (attempt - 1);
-    const jitter = Math.floor(Math.random() * 500);
-    return exp + jitter;
-  }
+    const segments: TranscriptSegment[] = [];
+    for (const cue of cues) {
+      const text = typeof cue.text === 'string' ? cue.text.trim() : '';
+      if (!text) continue;
 
-  private sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+      const startSec = Number(cue.start);
+      const durSec = Number(cue.dur);
+
+      segments.push({
+        text,
+        offset: Number.isFinite(startSec) ? startSec * 1000 : 0,
+        duration: Number.isFinite(durSec) ? durSec * 1000 : 0,
+        lang: language,
+      });
+    }
+
+    return segments;
   }
 
   private async readCache(
     videoId: string,
-    lang?: string,
+    lang: string,
   ): Promise<TranscriptResult | null> {
     try {
       const row = await db.query.transcripts.findFirst({
@@ -203,7 +275,7 @@ export class TranscriptService {
         return null;
       }
 
-      if (lang && row.language && row.language !== lang) {
+      if (row.language && row.language !== lang) {
         return null;
       }
 
@@ -252,83 +324,5 @@ export class TranscriptService {
         'Transcript cache write failed',
       );
     }
-  }
-
-  private rethrow(
-    error: unknown,
-    videoId: string,
-    lang?: string,
-    attempt?: number,
-  ): never {
-    const errorName =
-      error instanceof Error ? error.constructor.name : typeof error;
-    const base = {
-      videoId,
-      lang,
-      attempt,
-      errorName,
-      proxyConfigured: this.proxyConfigured,
-    };
-
-    if (
-      error instanceof YoutubeTranscriptTooManyRequestError ||
-      this.looksLikeIpBlock(error)
-    ) {
-      this.logger.error(
-        base,
-        'YouTube transcript blocked or rate-limited',
-      );
-      throw new ServiceUnavailableException(
-        'YouTube is rate-limiting or blocking transcript requests from this IP. Try again later, or set YOUTUBE_PROXY_URL to a residential proxy.',
-      );
-    }
-
-    if (error instanceof YoutubeTranscriptVideoUnavailableError) {
-      this.logger.warn(base, 'YouTube video unavailable');
-      throw new NotFoundException(`Video "${videoId}" is unavailable`);
-    }
-
-    // NotAvailable is often a mislabeled 429/403 from the library when our
-    // fetch wrapper did not see the status (e.g. empty body). Prefer 503.
-    if (error instanceof YoutubeTranscriptNotAvailableError) {
-      this.logger.error(
-        base,
-        'YouTube transcript not available (often IP block mislabeled)',
-      );
-      throw new ServiceUnavailableException(
-        `Could not retrieve transcript for video "${videoId}". YouTube may be blocking this IP; try again later or set YOUTUBE_PROXY_URL.`,
-      );
-    }
-
-    if (error instanceof YoutubeTranscriptDisabledError) {
-      this.logger.warn(base, 'YouTube captions disabled or missing');
-      throw new NotFoundException(
-        `No transcript is available for video "${videoId}"`,
-      );
-    }
-
-    if (error instanceof YoutubeTranscriptNotAvailableLanguageError) {
-      this.logger.warn(base, 'Requested transcript language not available');
-      throw new NotFoundException(
-        `Transcript language "${lang}" is not available for video "${videoId}"`,
-      );
-    }
-
-    if (error instanceof YoutubeTranscriptError) {
-      this.logger.error(
-        { ...base, message: error.message },
-        'YouTube transcript library error',
-      );
-      throw new UnprocessableEntityException(error.message);
-    }
-
-    this.logger.error(
-      {
-        ...base,
-        message: error instanceof Error ? error.message : String(error),
-      },
-      'Unexpected transcript fetch error',
-    );
-    throw error;
   }
 }

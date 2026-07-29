@@ -30,7 +30,7 @@ const isProd = process.env.NODE_ENV === 'production';
           paths: [
             'req.headers.authorization',
             'req.headers.cookie',
-            'YOUTUBE_PROXY_URL',
+            'APIFY_TOKEN',
           ],
           remove: true,
         },
