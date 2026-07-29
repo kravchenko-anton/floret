@@ -20,18 +20,17 @@ export class AnalyzeController {
   @ApiOperation({
     summary: 'Analyze a YouTube transcript for hooks, CTAs, and rehooks',
     description:
-      'Fetches the transcript, runs Cloudflare AI analysis, and caches the result by videoId.',
+      'Fetches the transcript via Apify, runs Groq AI analysis, and caches the result by videoId.',
   })
   @ApiOkResponse({ type: AnalyzeResponseDto })
   @ApiUnauthorizedResponse({
-    description: 'Cloudflare AI authentication failed',
+    description: 'Groq authentication failed',
   })
   @ApiUnprocessableEntityResponse({
     description: 'Invalid video ID or AI returned invalid analysis JSON',
   })
   @ApiServiceUnavailableResponse({
-    description:
-      'YouTube transcript blocked/rate-limited, or OpenRouter unavailable',
+    description: 'Transcript unavailable (Apify) or Groq unavailable',
   })
   analyze(@Body() body: AnalyzeRequestDto): Promise<AnalyzeResponseDto> {
     return this.analyzeService.analyze(body.videoId);
