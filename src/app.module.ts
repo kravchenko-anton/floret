@@ -31,6 +31,7 @@ const isProd = process.env.NODE_ENV === 'production';
             'req.headers.authorization',
             'req.headers.cookie',
             'APIFY_TOKEN',
+            'DASHSCOPE_API_KEY',
           ],
           remove: true,
         },

@@ -20,17 +20,17 @@ export class AnalyzeController {
   @ApiOperation({
     summary: 'Analyze a YouTube transcript for hooks, CTAs, and rehooks',
     description:
-      'Fetches the transcript via Apify, runs Groq AI analysis, and caches the result by videoId.',
+      'Fetches the transcript via Apify, runs Alibaba Model Studio (Qwen) analysis, and caches the result by videoId.',
   })
   @ApiOkResponse({ type: AnalyzeResponseDto })
   @ApiUnauthorizedResponse({
-    description: 'Groq authentication failed',
+    description: 'Alibaba Model Studio authentication failed',
   })
   @ApiUnprocessableEntityResponse({
     description: 'Invalid video ID or AI returned invalid analysis JSON',
   })
   @ApiServiceUnavailableResponse({
-    description: 'Transcript unavailable (Apify) or Groq unavailable',
+    description: 'Transcript unavailable (Apify) or Alibaba Model Studio unavailable',
   })
   analyze(@Body() body: AnalyzeRequestDto): Promise<AnalyzeResponseDto> {
     return this.analyzeService.analyze(body.videoId);

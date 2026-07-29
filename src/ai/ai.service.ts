@@ -3,20 +3,29 @@ import {
   ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Groq } from 'groq-sdk';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
+import OpenAI from 'openai';
 
-const DEFAULT_MODEL = 'qwen/qwen3.6-27b';
+const DEFAULT_MODEL = 'qwen-plus';
 const DEFAULT_MAX_TOKENS = 8192;
+const DEFAULT_BASE_URL =
+  'https://ws-bhz61zoeuyveb9s3.eu-central-1.maas.aliyuncs.com/compatible-mode/v1';
 
 @Injectable()
 export class AiService {
-  private readonly apiKey = process.env.GROQ_API_KEY?.trim();
-  readonly model = process.env.GROQ_MODEL?.trim() || DEFAULT_MODEL;
+  private readonly apiKey =
+    process.env.DASHSCOPE_API_KEY?.trim() ||
+    process.env.ALIBABA_API_KEY?.trim();
+  readonly model =
+    process.env.DASHSCOPE_MODEL?.trim() ||
+    process.env.ALIBABA_MODEL?.trim() ||
+    DEFAULT_MODEL;
+  private readonly baseURL =
+    process.env.DASHSCOPE_BASE_URL?.trim() || DEFAULT_BASE_URL;
   private readonly maxCompletionTokens = Number(
-    process.env.GROQ_MAX_COMPLETION_TOKENS ?? DEFAULT_MAX_TOKENS,
+    process.env.DASHSCOPE_MAX_TOKENS ?? DEFAULT_MAX_TOKENS,
   );
-  private client: Groq | null = null;
+  private client: OpenAI | null = null;
 
   constructor(
     @InjectPinoLogger(AiService.name)
@@ -28,35 +37,36 @@ export class AiService {
     userText: string,
   ): Promise<string> {
     if (!this.apiKey) {
-      this.logger.error({ model: this.model }, 'GROQ_API_KEY is missing');
-      throw new ServiceUnavailableException('GROQ_API_KEY is required');
+      this.logger.error({ model: this.model }, 'DASHSCOPE_API_KEY is missing');
+      throw new ServiceUnavailableException('DASHSCOPE_API_KEY is required');
     }
 
-    const groq = this.getClient();
+    const openai = this.getClient();
 
     try {
-      const result = await groq.chat.completions.create({
+      const result = await openai.chat.completions.create({
         model: this.model,
         messages: [
           { role: 'system', content: systemInstruction },
           { role: 'user', content: userText },
         ],
         temperature: 0.6,
-        max_completion_tokens: Number.isFinite(this.maxCompletionTokens)
+        max_tokens: Number.isFinite(this.maxCompletionTokens)
           ? this.maxCompletionTokens
           : DEFAULT_MAX_TOKENS,
         top_p: 0.95,
         stream: false,
-        reasoning_effort: 'default',
       });
 
       const text = result.choices?.[0]?.message?.content?.trim();
       if (!text) {
         this.logger.error(
           { model: this.model },
-          'Groq returned an empty response',
+          'Alibaba Model Studio returned an empty response',
         );
-        throw new ServiceUnavailableException('Groq returned an empty response');
+        throw new ServiceUnavailableException(
+          'Alibaba Model Studio returned an empty response',
+        );
       }
 
       return text;
@@ -68,7 +78,7 @@ export class AiService {
         throw error;
       }
 
-      const message = this.formatGroqError(error);
+      const message = this.formatError(error);
       const status = this.statusFromError(error);
 
       if (
@@ -78,24 +88,29 @@ export class AiService {
       ) {
         this.logger.error(
           { model: this.model, message, status },
-          'Groq authentication failed',
+          'Alibaba Model Studio authentication failed',
         );
         throw new UnauthorizedException(
-          `Groq authentication failed: ${message}`,
+          `Alibaba Model Studio authentication failed: ${message}`,
         );
       }
 
       this.logger.error(
         { model: this.model, message, status },
-        'Groq request failed',
+        'Alibaba Model Studio request failed',
       );
-      throw new ServiceUnavailableException(`Groq request failed: ${message}`);
+      throw new ServiceUnavailableException(
+        `Alibaba Model Studio request failed: ${message}`,
+      );
     }
   }
 
-  private getClient(): Groq {
+  private getClient(): OpenAI {
     if (!this.client) {
-      this.client = new Groq({ apiKey: this.apiKey! });
+      this.client = new OpenAI({
+        apiKey: this.apiKey!,
+        baseURL: this.baseURL,
+      });
     }
     return this.client;
   }
@@ -106,7 +121,7 @@ export class AiService {
     return typeof status === 'number' ? status : undefined;
   }
 
-  private formatGroqError(error: unknown): string {
+  private formatError(error: unknown): string {
     if (!error || typeof error !== 'object') {
       return String(error);
     }
@@ -125,4 +140,3 @@ export class AiService {
     return error instanceof Error ? error.message : String(error);
   }
 }
-
