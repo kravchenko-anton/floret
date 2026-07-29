@@ -3,6 +3,7 @@ import {
   ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
 const DEFAULT_MODEL = 'inclusionai/ling-3.0-flash:free';
 
@@ -22,11 +23,17 @@ export class AiService {
     typeof import('@openrouter/sdk').OpenRouter
   > | null> | null = null;
 
+  constructor(
+    @InjectPinoLogger(AiService.name)
+    private readonly logger: PinoLogger,
+  ) {}
+
   async generateJson(
     systemInstruction: string,
     userText: string,
   ): Promise<string> {
     if (!this.apiKey) {
+      this.logger.error({ model: this.model }, 'OPENROUTER_API_KEY is missing');
       throw new ServiceUnavailableException('OPENROUTER_API_KEY is required');
     }
 
@@ -50,6 +57,10 @@ export class AiService {
 
       const text = this.extractContent(result);
       if (!text) {
+        this.logger.error(
+          { model: this.model },
+          'OpenRouter returned an empty response',
+        );
         throw new ServiceUnavailableException(
           'OpenRouter returned an empty response',
         );
@@ -67,11 +78,19 @@ export class AiService {
       const message = this.formatOpenRouterError(error);
 
       if (/unauthorized|401|403|api key/i.test(message)) {
+        this.logger.error(
+          { model: this.model, message },
+          'OpenRouter authentication failed',
+        );
         throw new UnauthorizedException(
           `OpenRouter authentication failed: ${message}`,
         );
       }
 
+      this.logger.error(
+        { model: this.model, message },
+        'OpenRouter request failed',
+      );
       throw new ServiceUnavailableException(
         `OpenRouter request failed: ${message}`,
       );
@@ -109,6 +128,7 @@ export class AiService {
 
     const client = await this.clientPromise;
     if (!client) {
+      this.logger.error({ model: this.model }, 'Failed to init OpenRouter client');
       throw new ServiceUnavailableException('Failed to init OpenRouter client');
     }
     return client;

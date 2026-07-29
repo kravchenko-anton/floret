@@ -4,6 +4,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
+import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { AiService } from '../ai/ai.service';
 import { db } from '../db';
 import { analyses } from '../db/schema';
@@ -52,6 +53,8 @@ export class AnalyzeService {
   constructor(
     private readonly transcriptService: TranscriptService,
     private readonly aiService: AiService,
+    @InjectPinoLogger(AnalyzeService.name)
+    private readonly logger: PinoLogger,
   ) {}
 
   async analyze(videoIdInput: string): Promise<AnalyzeResponseDto> {
@@ -62,6 +65,13 @@ export class AnalyzeService {
     });
 
     if (cached && isScriptFormattedText(cached.text)) {
+      this.logger.info(
+        {
+          youtubeId,
+          highlights: cached.highlights.length,
+        },
+        'Analyze cache hit',
+      );
       return {
         text: cached.text,
         highlights: cached.highlights,
@@ -69,18 +79,66 @@ export class AnalyzeService {
       };
     }
 
+    if (cached) {
+      this.logger.info(
+        { youtubeId },
+        'Analyze cache stale (not script-formatted); re-analyzing',
+      );
+    } else {
+      this.logger.info({ youtubeId }, 'Analyze cache miss; starting analysis');
+    }
+
     const transcript = await this.transcriptService.fetch(youtubeId);
     const chapters = await fetchVideoChapters(youtubeId);
     const scriptText = formatAsSentenceScript(transcript, chapters);
+
+    this.logger.info(
+      {
+        youtubeId,
+        segments: transcript.segments.length,
+        chapters: chapters.length,
+        scriptChars: scriptText.length,
+        scriptLines: scriptText.split('\n').length,
+        model: this.aiService.model,
+      },
+      'Running AI analysis',
+    );
 
     const raw = await this.aiService.generateJson(
       SYSTEM_PROMPT,
       `Script text:\n${scriptText}`,
     );
 
-    const parsed = this.parseAiJson(raw);
-    const highlights = this.normalizeHighlights(parsed.highlights, scriptText);
-    const analysis = this.normalizeAnalysis(parsed.analysis);
+    let parsed: AiAnalysisPayload;
+    try {
+      parsed = this.parseAiJson(raw);
+    } catch (error) {
+      this.logger.error(
+        {
+          youtubeId,
+          rawPreview: raw.slice(0, 200),
+          message: error instanceof Error ? error.message : String(error),
+        },
+        'AI returned invalid JSON for analysis',
+      );
+      throw error;
+    }
+
+    let highlights: AnalyzeResponseDto['highlights'];
+    let analysis: string;
+    try {
+      highlights = this.normalizeHighlights(parsed.highlights, scriptText);
+      analysis = this.normalizeAnalysis(parsed.analysis);
+    } catch (error) {
+      this.logger.error(
+        {
+          youtubeId,
+          message: error instanceof Error ? error.message : String(error),
+        },
+        'AI analysis payload normalization failed',
+      );
+      throw error;
+    }
 
     await db
       .insert(analyses)
@@ -100,6 +158,11 @@ export class AnalyzeService {
           model: this.aiService.model,
         },
       });
+
+    this.logger.info(
+      { youtubeId, highlights: highlights.length },
+      'Analyze completed and cached',
+    );
 
     return {
       text: scriptText,

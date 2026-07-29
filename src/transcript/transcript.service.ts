@@ -5,6 +5,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
+import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import {
   fetchTranscript,
   YoutubeTranscriptDisabledError,
@@ -31,9 +32,17 @@ const BASE_DELAY_MS = 2000;
 
 @Injectable()
 export class TranscriptService {
+  private readonly proxyConfigured = Boolean(
+    process.env.YOUTUBE_PROXY_URL?.trim(),
+  );
   private readonly youtubeFetch = createYoutubeFetch(
     process.env.YOUTUBE_PROXY_URL?.trim() || undefined,
   );
+
+  constructor(
+    @InjectPinoLogger(TranscriptService.name)
+    private readonly logger: PinoLogger,
+  ) {}
 
   async fetch(
     videoIdOrUrl: string,
@@ -43,8 +52,17 @@ export class TranscriptService {
 
     const cached = await this.readCache(videoId, lang);
     if (cached) {
+      this.logger.info(
+        { videoId, lang, segments: cached.segments.length },
+        'Transcript cache hit',
+      );
       return cached;
     }
+
+    this.logger.info(
+      { videoId, lang, proxyConfigured: this.proxyConfigured },
+      'Fetching transcript from YouTube',
+    );
 
     const segments = await this.fetchWithRetry(videoId, lang);
     const result: TranscriptResult = {
@@ -55,6 +73,10 @@ export class TranscriptService {
     };
 
     await this.writeCache(result);
+    this.logger.info(
+      { videoId, language: result.language, segments: segments.length },
+      'Transcript fetched',
+    );
     return result;
   }
 
@@ -83,6 +105,7 @@ export class TranscriptService {
       // not a URL — fall through
     }
 
+    this.logger.warn({ input: trimmed.slice(0, 120) }, 'Invalid video ID input');
     throw new UnprocessableEntityException(
       `Could not extract a YouTube video ID from "${input}"`,
     );
@@ -102,16 +125,41 @@ export class TranscriptService {
         });
       } catch (error) {
         lastError = error;
+        const errorName =
+          error instanceof Error ? error.constructor.name : typeof error;
 
         if (!this.isRetryable(error) || attempt === MAX_ATTEMPTS) {
-          this.rethrow(error, videoId, lang);
+          this.logger.warn(
+            {
+              videoId,
+              lang,
+              attempt,
+              errorName,
+              proxyConfigured: this.proxyConfigured,
+              message: error instanceof Error ? error.message : String(error),
+            },
+            'Transcript fetch failed',
+          );
+          this.rethrow(error, videoId, lang, attempt);
         }
 
-        await this.sleep(this.backoffMs(attempt));
+        const delayMs = this.backoffMs(attempt);
+        this.logger.warn(
+          {
+            videoId,
+            attempt,
+            nextAttempt: attempt + 1,
+            delayMs,
+            errorName,
+            proxyConfigured: this.proxyConfigured,
+          },
+          'Retrying transcript fetch after YouTube rate-limit/block',
+        );
+        await this.sleep(delayMs);
       }
     }
 
-    this.rethrow(lastError, videoId, lang);
+    this.rethrow(lastError, videoId, lang, MAX_ATTEMPTS);
   }
 
   private isRetryable(error: unknown): boolean {
@@ -146,24 +194,36 @@ export class TranscriptService {
     videoId: string,
     lang?: string,
   ): Promise<TranscriptResult | null> {
-    const row = await db.query.transcripts.findFirst({
-      where: eq(transcripts.youtubeId, videoId),
-    });
+    try {
+      const row = await db.query.transcripts.findFirst({
+        where: eq(transcripts.youtubeId, videoId),
+      });
 
-    if (!row?.segments?.length) {
+      if (!row?.segments?.length) {
+        return null;
+      }
+
+      if (lang && row.language && row.language !== lang) {
+        return null;
+      }
+
+      return {
+        videoId,
+        language: row.language ?? undefined,
+        segments: row.segments,
+        text: row.segments.map((s) => s.text).join(' '),
+      };
+    } catch (error) {
+      this.logger.warn(
+        {
+          videoId,
+          errorName: error instanceof Error ? error.constructor.name : typeof error,
+          message: error instanceof Error ? error.message : String(error),
+        },
+        'Transcript cache read failed',
+      );
       return null;
     }
-
-    if (lang && row.language && row.language !== lang) {
-      return null;
-    }
-
-    return {
-      videoId,
-      language: row.language ?? undefined,
-      segments: row.segments,
-      text: row.segments.map((s) => s.text).join(' '),
-    };
   }
 
   private async writeCache(result: TranscriptResult): Promise<void> {
@@ -182,51 +242,93 @@ export class TranscriptService {
             segments: result.segments,
           },
         });
-    } catch {
-      // Cache is best-effort; analyze/fetch should still succeed.
+    } catch (error) {
+      this.logger.warn(
+        {
+          videoId: result.videoId,
+          errorName: error instanceof Error ? error.constructor.name : typeof error,
+          message: error instanceof Error ? error.message : String(error),
+        },
+        'Transcript cache write failed',
+      );
     }
   }
 
-  private rethrow(error: unknown, videoId: string, lang?: string): never {
+  private rethrow(
+    error: unknown,
+    videoId: string,
+    lang?: string,
+    attempt?: number,
+  ): never {
+    const errorName =
+      error instanceof Error ? error.constructor.name : typeof error;
+    const base = {
+      videoId,
+      lang,
+      attempt,
+      errorName,
+      proxyConfigured: this.proxyConfigured,
+    };
+
     if (
       error instanceof YoutubeTranscriptTooManyRequestError ||
       this.looksLikeIpBlock(error)
     ) {
+      this.logger.error(
+        base,
+        'YouTube transcript blocked or rate-limited',
+      );
       throw new ServiceUnavailableException(
         'YouTube is rate-limiting or blocking transcript requests from this IP. Try again later, or set YOUTUBE_PROXY_URL to a residential proxy.',
       );
     }
 
     if (error instanceof YoutubeTranscriptVideoUnavailableError) {
+      this.logger.warn(base, 'YouTube video unavailable');
       throw new NotFoundException(`Video "${videoId}" is unavailable`);
     }
 
     // NotAvailable is often a mislabeled 429/403 from the library when our
     // fetch wrapper did not see the status (e.g. empty body). Prefer 503.
     if (error instanceof YoutubeTranscriptNotAvailableError) {
+      this.logger.error(
+        base,
+        'YouTube transcript not available (often IP block mislabeled)',
+      );
       throw new ServiceUnavailableException(
         `Could not retrieve transcript for video "${videoId}". YouTube may be blocking this IP; try again later or set YOUTUBE_PROXY_URL.`,
       );
     }
 
-    if (
-      error instanceof YoutubeTranscriptDisabledError
-    ) {
+    if (error instanceof YoutubeTranscriptDisabledError) {
+      this.logger.warn(base, 'YouTube captions disabled or missing');
       throw new NotFoundException(
         `No transcript is available for video "${videoId}"`,
       );
     }
 
     if (error instanceof YoutubeTranscriptNotAvailableLanguageError) {
+      this.logger.warn(base, 'Requested transcript language not available');
       throw new NotFoundException(
         `Transcript language "${lang}" is not available for video "${videoId}"`,
       );
     }
 
     if (error instanceof YoutubeTranscriptError) {
+      this.logger.error(
+        { ...base, message: error.message },
+        'YouTube transcript library error',
+      );
       throw new UnprocessableEntityException(error.message);
     }
 
+    this.logger.error(
+      {
+        ...base,
+        message: error instanceof Error ? error.message : String(error),
+      },
+      'Unexpected transcript fetch error',
+    );
     throw error;
   }
 }
