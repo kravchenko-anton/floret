@@ -7,11 +7,32 @@ import { apiReference } from '@scalar/nestjs-api-reference'
 import { Logger } from 'nestjs-pino'
 import { AppModule } from './app.module'
 
+function corsOrigins(): string[] {
+  const fromEnv = (process.env.CORS_ORIGINS ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'https://youtube-script.antonkzavcenco300.workers.dev',
+    ...fromEnv,
+  ];
+}
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
   app.useLogger(app.get(Logger));
   // Needed so req.ip / x-forwarded-for reflect the real client behind Railway/proxy.
   app.getHttpAdapter().getInstance().set('trust proxy', 1);
+
+  // Browser → Floret (esp. POST /votes) so anti-spam uses the visitor IP, not a BFF.
+  app.enableCors({
+    origin: corsOrigins(),
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Accept'],
+    maxAge: 86400,
+  });
 
   if (process.env.NODE_ENV !== 'production') {
     const config = new DocumentBuilder()
