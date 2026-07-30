@@ -212,7 +212,7 @@ Content-Type: application/json
 
 ```json
 {
-  "text": "0:00  Intro\n\nThis is the spoken script…\nNext sentence.",
+  "text": "<b>0:00  Intro</b>\n\nThis is the spoken script…\nNext sentence.",
   "highlights": [
     {
       "type": "hook",
@@ -227,7 +227,7 @@ Content-Type: application/json
 
 | Field | Notes |
 |-------|--------|
-| `text` | Script format: **one sentence per line**. If chapters exist, section headers look like `MM:SS  Title` (timestamp, **two spaces**, title). |
+| `text` | Script format: **one thought / sentence per line** (AI-reflowed). If chapters exist, section headers look like `<b>MM:SS  Title</b>` (bold tags, timestamp, **two spaces**, title). |
 | `highlights[].type` | `"hook"` \| `"cta"` \| `"rehook"` only |
 | `highlights[].start` / `end` | Character offsets into `text` (start inclusive, end exclusive). `quote === text.slice(start, end)`. |
 | `analysis` | Plain-text retention / structure assessment |

@@ -28,8 +28,8 @@ function formatTimestamp(startSec: number): string {
 }
 
 export function formatChapterHeader(startSec: number, title: string): string {
-  // Exactly two spaces between timestamp and title.
-  return `${formatTimestamp(startSec)}  ${title.trim()}`;
+  // Exactly two spaces between timestamp and title; bold for clients.
+  return `<b>${formatTimestamp(startSec)}  ${title.trim()}</b>`;
 }
 
 function dedupeChapters(chapters: VideoChapter[]): VideoChapter[] {

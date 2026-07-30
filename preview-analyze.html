@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Analyze script preview</title>
+  <style>
+    :root {
+      --bg: #f7f5f1;
+      --ink: #1a1a1a;
+      --muted: #666;
+      --hook: #ffe08a;
+      --rehook: #b8e0ff;
+      --cta: #c8f0c0;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.55;
+    }
+    header {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid #ddd;
+      background: #fff;
+    }
+    header h1 {
+      margin: 0 0 0.35rem;
+      font-size: 1.15rem;
+      font-family: system-ui, sans-serif;
+    }
+    header p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.85rem;
+      font-family: system-ui, sans-serif;
+    }
+    .legend {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-top: 0.75rem;
+      font-family: system-ui, sans-serif;
+      font-size: 0.8rem;
+    }
+    .legend span {
+      padding: 0.15rem 0.5rem;
+      border-radius: 3px;
+    }
+    .legend .hook { background: var(--hook); }
+    .legend .rehook { background: var(--rehook); }
+    .legend .cta { background: var(--cta); }
+    main {
+      max-width: 46rem;
+      margin: 0 auto;
+      padding: 1.5rem;
+    }
+    #script {
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      font-size: 1.05rem;
+    }
+    #script b {
+      display: block;
+      margin-top: 1.25rem;
+      margin-bottom: 0.35rem;
+      font-family: system-ui, sans-serif;
+      font-size: 0.95rem;
+      letter-spacing: 0.01em;
+    }
+    #script b:first-child { margin-top: 0; }
+    mark {
+      border-radius: 2px;
+      padding: 0.05em 0;
+    }
+    mark.hook { background: var(--hook); }
+    mark.rehook { background: var(--rehook); }
+    mark.cta { background: var(--cta); }
+    #analysis {
+      margin-top: 2rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid #ddd;
+      font-family: system-ui, sans-serif;
+      font-size: 0.92rem;
+      color: #333;
+    }
+    #analysis h2 {
+      margin: 0 0 0.5rem;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Analyze script preview</h1>
+    <p>Checks bold chapter headers, line breaks, and highlight ranges.</p>
+    <div class="legend">
+      <span class="hook">hook</span>
+      <span class="rehook">rehook</span>
+      <span class="cta">cta</span>
+    </div>
+  </header>
+  <main>
+    <div id="script"></div>
+    <section id="analysis">
+      <h2>Analysis</h2>
+      <p id="analysis-text"></p>
+    </section>
+  </main>
+  <script>
+    const previousPayload = {
+      "text": "<b>0:00  Intro</b>\n\nhave you ever wanted to bring an app idea to life and turn it into a source of income this is what being able to code can unlock but here's a common trap most people will waste months learning things that don't actually move them closer to their goals why maybe it's a lack of confidence limited time or simply not knowing where to start if your goal is to build apps that provide value and earn money then you don't need to know every technical detail of a language or a framework to achieve this you just need to start and create some momentum in this video I'll provide a clear and concise Road mapap for coding your first app accepting payments from users building a high conversion landing page and securing your first customers I'll try my best to cut out all the fluff to give you a compressed and actionable plan even if you're starting from scratch and have zero coding\n\n<b>0:46  The mindset you need to adopt</b>\n\nexperience before we dive into the road map let's talk about something that's just as important your mindset first you need to think as yourself as a problem solver not just a programmer you're not trying to memorize syntax or prompt the AI to write your Solutions it's about understanding and solving real problems for your users here's the truth people will pay you good money if you can resolve a pain they're struggling with save them time or help them make more money so as you learn and build always ask yourself how can my work improve the lives of others if you consistently focus on providing genuine value you'll stand out as someone who solves real problems not just someone who writes code now that you've got the right\n\n<b>1:23  Setting clear goals (seriously)</b>\n\nmindset the next step is to set clear goals just saying I want to learn to code or I want to build an app is way too broad you'll have no idea when you've achieved it and you'll constantly feel like you're falling short try using this simple formula when brainstorming app ideas I want to build an app that does X to solve y problem for these users or better yet build something that solves a problem you are currently facing scratch your own itch and Market it to other people that are facing the same problem from there Focus towards building a simple lovable and complete version of your app simple means it doesn't have to do everything just deliver on the one to two key features you promised lovable means making people want to use your product with good UI and ux and complete means your product should be functional at launch aim to ship a version one of something simple rather than a version 0.1 of something complex no pain customer wants to use an unfinished product a lot of people ask me what is the best programming language to learn and my answer is always what are you trying to build and this is why it's so important to set clear goals first it becomes much easier to decide which programming language or text tack you should learn once you have something in mind you want to build but remember this once you've picked a language and text stack you have to stick with it for a while your progress will only stall if you keep hopping from one language to another always chasing the next shiny object to code your first app you'll\n\n<b>2:51  The building phase</b>\n\nneed to choose and learn a text stack instead of diving into every possible path I recommend using a resource like Road map. sh it has in-depth road maps for various development paths for front end backend mobile and more it's free actively maintained and most importantly highlights the essential and optional topics you should learn this keeps your learning focused and efficient a great resource to help you with your coding journey and one I used personally is scrimba scrimba is a platform with interactive courses on everything from front end to AI development their lessons are designed to be practical and Hands-On letting you edit and run code directly in the browser while following along with the tutorial they put a huge focus on Project based learning so it's perfect for applying your knowledge into real applications currently over 80% of the content is free and I personally recommend checking out their new AI engineer path it's less than 10 hours long and it primes you with the skills to work with modern AI Technologies like the open AI API hugging face and Lang chain all of which will become useful if you plan to implement AI features into your applications plus scrimber has a super active and welcoming Discord community where you can ask questions and get help whenever you're stuck if you couldn't tell I'm super excited and grateful to be working with scrimba check them out first link in the description once you've chosen your Tex deack you can speed up your learning and building Time by leveraging modern AI tools cursor and wind surf these AI Ides aim to boost productivity with code generation rewrites and reviews all within your editor without having to context switch keeping you in the Flow State when building Vel v0 a tool that lets you generate fully responsive UI and components in seconds and of course chat gbt check the description for some useful prompts to help you build faster once your app is functional you will want a way to monetize it start by deciding on your pricing model onetime payments customers prefer this as they only have to pay once to own the software is also quicker for generating Revenue subscriptions ideal for recurring Revenue but consider adding it after you see some demand include a free trial to let users test your product before they commit after deciding on a pricing model choose a platform to handle your payments stripe the most popular powerful and developer friendly platform lemon squeezy recently acquired by stripe but still useful for Indie developers who want an all-in-one solution with tax handling paddle useful if you're targeting International customers with the built-in tax and subscription management now that users can pay you it's time to ship your app so people can Discover it for web apps I recommend platforms like for sale qualify and netlify for deployment for mobile apps the App Store and Google Play Store are the most common platform and for browser extensions the Chrome Web Store Firefox and Edge add-ons are\n\n<b>5:34  The marketing phase</b>\n\nthe main platforms once your app is ready you need to attract users and convert them into customers one way you can do this is by creating a landing page its sole purpose is to build trust with a stranger and convert them into signing up or purchasing there is a general structure for landing pages that are proven to give High conversions you need a clear and compelling headline that grabs attention and communicates value include visuals or demos that show what your app can do and how it solves the problem add social proof like testimonials or user reviews to build credibility and Trust I will link some useful resources in the description once you have a landing page use social media platforms like Reddit product hunt Twitter and Niche forums to spread the word of your launch try not to make it sound too salesy tell your story in a genuine way and what inspired you to make the product people who resonate with you will be more than happy to try your product and give you your first piece of feedback congrats on publishing\n\n<b>6:25  The iterating phase</b>\n\nyour app and gaining your first wave of users but the work isn't over to turn your app from decent into something great you need to relentlessly gather feedback from your users and use it to improve add a simple feedback button within your app that lets users send an email directly to you or build a community where users can have open discussions but be mindful not all feedback is created equal you need to focus on what matters so use the following criteria to prioritize feedback frequency how often do you get the same pieces of feedback if the same issues keep getting mentioned it's probably worth addressing feasibility how easy or difficult is it to implement if it's a quick win implement it right away impact how much real value does it bring to your users do your users really need dark mode or is that time better spent making your app responsive for mobile devices the key to iterating is speed this means releasing updates quickly and often it's not uncommon for small startups to update production multiple times a day this is where working solo becomes your greatest asset you don't have a large team slowing you down so move as fast as you can and use it to your advantage for more solo startup content please like And subscribe and I'll see you in the next one bye-bye",
+      "highlights": [
+        {
+          "type": "hook",
+          "start": 20,
+          "end": 271,
+          "quote": "have you ever wanted to bring an app idea to life and turn it into a source of income this is what being able to code can unlock but here's a common trap most people will waste months learning things that don't actually move them closer to their goals"
+        },
+        {
+          "type": "rehook",
+          "start": 527,
+          "end": 639,
+          "quote": "need to start and create some momentum in this video I'll provide a clear and concise Road mapap for coding your"
+        },
+        {
+          "type": "cta",
+          "start": 4693,
+          "end": 4737,
+          "quote": "check them out first link in the description"
+        },
+        {
+          "type": "rehook",
+          "start": 5231,
+          "end": 5333,
+          "quote": "once your app is functional you will want a way to monetize it start by deciding on your pricing model"
+        },
+        {
+          "type": "cta",
+          "start": 6953,
+          "end": 7005,
+          "quote": "I will link some useful resources in the description"
+        },
+        {
+          "type": "cta",
+          "start": 8622,
+          "end": 8710,
+          "quote": "for more solo startup content please like And subscribe and I'll see you in the next one"
+        }
+      ],
+      "analysis": "The video opens with a strong, benefit-driven hook targeting aspiration (income) and pain (wasted time), establishing immediate relevance. Two rehooks effectively segment the content: one pivoting from mindset to goal-setting, another transitioning from building to monetization—both reinforcing forward momentum. CTAs are well-placed: two direct resource prompts (Scrimba, landing page tools) and one end-screen subscription ask. All CTAs are action-oriented, platform-specific, and tied to value (free resources, proven tools). The structure follows a clear problem-solution-journey arc (Intro → Mindset → Goals → Build → Market → Iterate), with each phase anchored by concrete, executable advice—not theory. No fluff-heavy intros or vague encouragement; every section delivers tactical steps, making retention high for goal-oriented beginners."
+    };
+
+    const payload = {
+      "text": "<b>0:00  Intro</b>\n\nhave you ever wanted to bring an app idea to life and turn it into a source of income this is what being able to code can unlock\nbut here's a common trap most people will waste months learning things that don't actually move them closer\nto their goals why maybe it's a lack of confidence limited time or simply not knowing where to start if your goal is\nto build apps that provide value and earn money then you don't need to know every technical detail of a language or a framework\nto achieve this you just need to start and create some momentum in this video I'll provide a clear\nand concise Road mapap for coding your first app accepting payments from users building a high conversion landing page and securing your first customers I'll try my best\nto cut out all the fluff to give you a compressed and actionable plan even if you're starting from scratch and have zero coding\n\n<b>0:46  The mindset you need to adopt</b>\n\nexperience before we dive into the road map let's talk about something that's just as important your mindset first you need\nto think as yourself as a problem solver not just a programmer you're not trying to memorize syntax or prompt the AI\nto write your Solutions it's about understanding and solving real problems for your users here's the truth people will pay you good money\nif you can resolve a pain they're struggling with save them time or help them make more money so as you learn\nand build always ask yourself how can my work improve the lives of others\nif you consistently focus on providing genuine value you'll stand out as someone who solves real problems not just someone who writes code\nnow that you've got the right\n\n<b>1:23  Setting clear goals (seriously)</b>\n\nmindset the next step is to set clear goals just saying I want to learn to code or I want\nto build an app is way too broad you'll have no idea when you've achieved it\nand you'll constantly feel like you're falling short try using this simple formula when brainstorming app ideas I want to build an app that does X\nto solve y problem for these users or better yet build something that solves a problem you are currently facing scratch your own itch and Market it\nto other people that are facing the same problem from there Focus towards building a simple lovable and complete version of your app simple means it doesn't have\nto do everything just deliver on the one to two key features you promised lovable means making people want to use your product with good UI and ux\nand complete means your product should be functional at launch aim\nto ship a version one of something simple rather than a version 0.1 of something complex no pain customer wants\nto use an unfinished product a lot of people ask me what is the best programming language to learn and my answer is always what are you trying\nto build and this is why it's so important to set clear goals first it becomes much easier\nto decide which programming language or text tack you should learn once you have something in mind you want to build but remember this\nonce you've picked a language and text stack you have to stick with it for a while your progress will only stall if you keep hopping\nfrom one language to another always chasing the next shiny object to code your first app you'll\n\n<b>2:51  The building phase</b>\n\nneed to choose and learn a text stack instead of diving into every possible path I recommend using a resource like Road map.\nsh it has in-depth road maps for various development paths for front end backend mobile and more it's free actively maintained and most importantly highlights the essential\nand optional topics you should learn this keeps your learning focused and efficient a great resource to help you with your coding journey\nand one I used personally is scrimba scrimba is a platform with interactive courses on everything from front end to AI development their lessons are designed\nto be practical and Hands-On letting you edit and run code directly in the browser\nwhile following along with the tutorial they put a huge focus on Project based learning\nso it's perfect for applying your knowledge into real applications currently over 80% of the content is free\nand I personally recommend checking out their new AI engineer path it's less than 10 hours long and it primes you with the skills\nto work with modern AI Technologies like the open AI API hugging face and Lang chain all of which will become useful if you plan\nto implement AI features into your applications plus scrimber has a super active and welcoming Discord community where you can ask questions and get help whenever you're stuck\nif you couldn't tell I'm super excited and grateful to be working with scrimba check them out first link in the description\nonce you've chosen your Tex deack you can speed up your learning and building Time by leveraging modern AI tools cursor and wind surf these AI Ides aim\nto boost productivity with code generation rewrites and reviews all within your editor without having to context switch keeping you in the Flow State\nwhen building Vel v0 a tool that lets you generate fully responsive UI and components in seconds\nand of course chat gbt check the description for some useful prompts to help you build faster once your app is functional you will want a way\nto monetize it start by deciding on your pricing model onetime payments customers prefer this as they only have to pay once\nto own the software is also quicker for generating Revenue subscriptions ideal for recurring Revenue but consider adding it after you see some demand include a free trial\nto let users test your product before they commit after deciding on a pricing model choose a platform to handle your payments stripe the most popular powerful\nand developer friendly platform lemon squeezy recently acquired by stripe but still useful for Indie developers who want an all-in-one solution with tax handling paddle useful\nif you're targeting International customers with the built-in tax and subscription management now that users can pay you it's time to ship your app\nso people can Discover it for web apps I recommend platforms like for sale qualify and netlify for deployment for mobile apps the App Store\nand Google Play Store are the most common platform and for browser extensions the Chrome Web Store Firefox and Edge add-ons are\n\n<b>5:34  The marketing phase</b>\n\nthe main platforms once your app is ready you need to attract users\nand convert them into customers one way you can do this is by creating a landing page its sole purpose is to build trust with a stranger\nand convert them into signing up or purchasing there is a general structure for landing pages that are proven to give High conversions you need a clear\nand compelling headline that grabs attention and communicates value include visuals or demos that show what your app can do\nand how it solves the problem add social proof like testimonials or user reviews to build credibility and Trust I will link some useful resources in the description\nonce you have a landing page use social media platforms like Reddit product hunt Twitter and Niche forums to spread the word of your launch try not\nto make it sound too salesy tell your story in a genuine way and what inspired you\nto make the product people who resonate with you will be more than happy to try your product\nand give you your first piece of feedback congrats on publishing\n\n<b>6:25  The iterating phase</b>\n\nyour app and gaining your first wave of users but the work isn't over to turn your app from decent into something great you need\nto relentlessly gather feedback from your users and use it to improve add a simple feedback button within your app that lets users send an email directly\nto you or build a community where users can have open discussions but be mindful not all feedback is created equal you need to focus on what matters\nso use the following criteria to prioritize feedback frequency how often do you get the same pieces of feedback\nif the same issues keep getting mentioned it's probably worth addressing feasibility how easy or difficult is it to implement\nif it's a quick win implement it right away impact how much real value does it bring\nto your users do your users really need dark mode or is that time better spent making your app responsive for mobile devices the key\nto iterating is speed this means releasing updates quickly and often it's not uncommon for small startups\nto update production multiple times a day this is where working solo becomes your greatest asset you don't have a large team slowing you down\nso move as fast as you can and use it to your advantage for more solo startup content please like And subscribe\nand I'll see you in the next one bye-bye",
+      "highlights": [
+        {
+          "type": "hook",
+          "start": 20,
+          "end": 148,
+          "quote": "have you ever wanted to bring an app idea to life and turn it into a source of income this is what being able to code can unlock"
+        },
+        {
+          "type": "rehook",
+          "start": 374,
+          "end": 501,
+          "quote": "to build apps that provide value and earn money then you don't need to know every technical detail of a language or a framework"
+        },
+        {
+          "type": "rehook",
+          "start": 744,
+          "end": 891,
+          "quote": "customers I'll try my best\nto cut out all the fluff to give you a compressed and actionable plan even if you're starting from scratch and have zero"
+        },
+        {
+          "type": "rehook",
+          "start": 1199,
+          "end": 1348,
+          "quote": "Solutions it's about understanding and solving real problems for your users here's the truth people will pay you good money\nif you can resolve a pain"
+        },
+        {
+          "type": "cta",
+          "start": 4693,
+          "end": 4737,
+          "quote": "check them out first link in the description"
+        },
+        {
+          "type": "cta",
+          "start": 6953,
+          "end": 7005,
+          "quote": "I will link some useful resources in the description"
+        },
+        {
+          "type": "cta",
+          "start": 8622,
+          "end": 8677,
+          "quote": "for more solo startup content please like And subscribe"
+        }
+      ],
+      "analysis": "The script opens with a strong, benefit-driven hook targeting aspiration and income—immediately framing coding as an empowerment tool. Three well-placed rehooks reinforce core philosophy shifts: focusing on value over syntax (0:46), problem-solving over perfection (1:23), and shipping simplicity over feature bloat (2:51). CTAs are strategically embedded after high-value offers: Scrimba partnership (with urgency via 'first link'), resource links for landing pages, and a direct subscription ask post-iteration advice—each tied to clear value (free courses, conversion templates, solo-founder insights). The retention structure follows a logical progression—hook → mindset → goals → build → monetize → market → iterate—with rehooks acting as conceptual resets before each major phase. No chapter headers are highlighted; all quotes are full, grammatically intact sentences aligned to whitespace boundaries."
+    };
+
+    function escapeHtml(s) {
+      return s
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+
+    function renderScript(text, highlights) {
+      const sorted = [...highlights].sort((a, b) => a.start - b.start);
+      let html = '';
+      let cursor = 0;
+
+      for (const h of sorted) {
+        const start = Math.max(0, Math.min(h.start, text.length));
+        const end = Math.max(start, Math.min(h.end, text.length));
+        if (start < cursor) continue;
+
+        html += formatChunk(text.slice(cursor, start));
+        const slice = text.slice(start, end);
+        const match = slice === h.quote;
+        html += `<mark class="${escapeHtml(h.type)}" title="${escapeHtml(h.type)}${match ? '' : ' (offset/quote mismatch)'}">${formatChunk(slice)}</mark>`;
+        cursor = end;
+      }
+      html += formatChunk(text.slice(cursor));
+      return html;
+    }
+
+    // Keep <b>…</b> chapter headers; escape everything else; preserve newlines via pre-wrap.
+    function formatChunk(chunk) {
+      return escapeHtml(chunk)
+        .replace(/&lt;b&gt;/g, '<b>')
+        .replace(/&lt;\/b&gt;/g, '</b>');
+    }
+
+    const scriptEl = document.getElementById('script');
+    scriptEl.innerHTML = renderScript(payload.text, payload.highlights);
+    document.getElementById('analysis-text').textContent = payload.analysis;
+
+    // Quick self-check in console
+    for (const h of payload.highlights) {
+      const actual = payload.text.slice(h.start, h.end);
+      console.log(h.type, actual === h.quote ? 'OK' : 'MISMATCH', {
+        start: h.start,
+        end: h.end,
+      });
+    }
+  </script>
+</body>
+</html>
