@@ -1,13 +1,13 @@
 {
   "name": "floret",
   "displayName": "Floret",
-  "version": "1.1.1",
-  "description": "YouTube transcript + script analysis (hooks, format, storytelling) via the Floret API.",
+  "version": "1.2.0",
+  "description": "YouTube transcript + script analysis via the Floret API.",
   "author": {
     "name": "Floret"
   },
   "homepage": "https://bubbly-vibrancy-production-168d.up.railway.app",
   "icon": "./icon.png",
-  "keywords": ["youtube", "transcript", "script", "hooks", "analysis"],
+  "keywords": ["youtube", "transcript", "analyse", "script"],
   "license": "MIT"
 }

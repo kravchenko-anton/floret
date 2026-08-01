@@ -28,7 +28,8 @@
     "docker:build": "docker build -t antonkravchenko1/floret:latest .",
     "docker:push": "docker push antonkravchenko1/floret:latest",
     "mcpb:pack": "npm --prefix desktop-extension install && node scripts/pack-mcpb.cjs",
-    "plugin:pack": "node scripts/pack-plugin.cjs"
+    "plugin:icon": "node scripts/make-plugin-icon.cjs",
+    "plugin:pack": "node scripts/make-plugin-icon.cjs && node scripts/pack-plugin.cjs"
   },
   "dependencies": {
     "@modelcontextprotocol/core": "^2.0.0",

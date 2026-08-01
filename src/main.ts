@@ -1,12 +1,13 @@
 import 'dotenv/config'
 import './instrument'
 
-import { join } from 'path'
 import { NestFactory } from '@nestjs/core'
 import { NestExpressApplication } from '@nestjs/platform-express'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
 import { apiReference } from '@scalar/nestjs-api-reference'
+import type { Request, Response } from 'express'
 import { Logger } from 'nestjs-pino'
+import { join } from 'path'
 import { AppModule } from './app.module'
 import { mcp } from './mcp/mcp.strategy'
 
@@ -62,7 +63,7 @@ async function bootstrap() {
 
     const document = SwaggerModule.createDocument(app, config);
 
-    app.getHttpAdapter().get('/openapi.json', (_req, res) => {
+    app.getHttpAdapter().get('/openapi.json', (_req: Request, res: Response) => {
       res.json(document);
     });
 
