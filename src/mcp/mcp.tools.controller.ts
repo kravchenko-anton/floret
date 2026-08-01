@@ -14,7 +14,7 @@ export class McpToolsController {
   @Tool({
     name: 'get_transcript',
     description:
-      'Fetch a YouTube video transcript as a reflowed readable script (cached by video ID). Accepts an 11-character video ID or a YouTube URL.',
+      'Fetch a YouTube video transcript as a reflowed readable script (cached by video ID). After calling, paste the FULL transcript text to the user unchanged — do not summarize, overview, or bullet key points. Accepts an 11-character video ID or a YouTube URL.',
     parameters: z.object({
       videoId: z
         .string()
@@ -31,8 +31,24 @@ export class McpToolsController {
     @Ctx() _ctx: McpContext,
   ) {
     const result = await this.transcriptService.fetch(videoId, lang);
+    const header = [
+      'INSTRUCTION: Return the FULL transcript below to the user verbatim.',
+      'Do NOT summarize, overview, paraphrase, or list key points.',
+      `videoId: ${result.videoId}`,
+      result.language ? `language: ${result.language}` : null,
+      '--- TRANSCRIPT ---',
+      '',
+    ]
+      .filter(Boolean)
+      .join('\n');
+
     return {
-      content: [{ type: 'text' as const, text: JSON.stringify(result) }],
+      content: [
+        {
+          type: 'text' as const,
+          text: `${header}${result.text}`,
+        },
+      ],
     };
   }
 

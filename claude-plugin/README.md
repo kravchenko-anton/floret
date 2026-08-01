@@ -12,6 +12,6 @@ Upload **`floret.zip`** in Claude → Plugins → Upload plugin.
 
 | Skills | Connectors |
 |--------|------------|
-| `/analyse`, `/transcript` | `floret` → tools `analyze_video`, `get_transcript` |
+| `/analyze`, `/transcript` | `floret` → tools `analyze_video`, `get_transcript` |
 
 Icon: square flower crop in `icon.png` (also under `.claude-plugin/`). Redeploy the API so `/logo.png` + `/favicon.ico` are live — Claude’s connector tile often uses the host favicon.

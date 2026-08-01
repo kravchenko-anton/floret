@@ -1,9 +1,9 @@
 ---
-name: analyse
+name: analyze
 description: Analyze a YouTube video script with Floret — format, angle, storytelling, hooks, visuals.
 ---
 
-# Analyse
+# Analyze
 
 Use Floret MCP tool `analyze_video` with the YouTube URL or video ID.
 
