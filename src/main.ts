@@ -1,7 +1,9 @@
 import 'dotenv/config'
 import './instrument'
 
+import { join } from 'path'
 import { NestFactory } from '@nestjs/core'
+import { NestExpressApplication } from '@nestjs/platform-express'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
 import { apiReference } from '@scalar/nestjs-api-reference'
 import { Logger } from 'nestjs-pino'
@@ -22,10 +24,18 @@ function corsOrigins(): string[] {
 }
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    bufferLogs: true,
+  });
   app.useLogger(app.get(Logger));
   // Needed so req.ip / x-forwarded-for reflect the real client behind Railway/proxy.
   app.getHttpAdapter().getInstance().set('trust proxy', 1);
+
+  // Logo / favicon for Claude connectors (often fetch host favicon).
+  app.useStaticAssets(join(process.cwd(), 'public'), {
+    index: false,
+    maxAge: '7d',
+  });
 
   // Browser → Floret (esp. POST /votes) so anti-spam uses the visitor IP, not a BFF.
   // MCP clients may send Authorization + DELETE for session teardown.

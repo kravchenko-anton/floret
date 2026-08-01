@@ -3,6 +3,14 @@
 /node_modules
 /build
 .env
+
+# Desktop extension pack artifacts (rebuild with npm run mcpb:pack)
+desktop-extension/node_modules
+desktop-extension/*.mcpb
+
+# Claude plugin pack artifacts (rebuild with npm run plugin:pack)
+claude-plugin/*.zip
+claude-plugin/*.plugin
 # Logs
 logs
 *.log

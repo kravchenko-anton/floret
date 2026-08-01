@@ -26,7 +26,9 @@
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f",
     "docker:build": "docker build -t antonkravchenko1/floret:latest .",
-    "docker:push": "docker push antonkravchenko1/floret:latest"
+    "docker:push": "docker push antonkravchenko1/floret:latest",
+    "mcpb:pack": "npm --prefix desktop-extension install && node scripts/pack-mcpb.cjs",
+    "plugin:pack": "node scripts/pack-plugin.cjs"
   },
   "dependencies": {
     "@modelcontextprotocol/core": "^2.0.0",

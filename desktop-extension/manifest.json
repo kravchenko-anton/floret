@@ -1,0 +1,68 @@
+{
+  "manifest_version": "0.3",
+  "name": "floret",
+  "display_name": "Floret",
+  "version": "1.0.0",
+  "description": "YouTube transcript + script analysis (hooks, format, storytelling) via Floret.",
+  "long_description": "Floret fetches YouTube captions, reflows them into a readable script, and analyzes format, angle, storytelling, hooks, and visuals. This Desktop extension runs locally and calls your hosted Floret API — same tools as the remote MCP connector (get_transcript, analyze_video).",
+  "author": {
+    "name": "Floret"
+  },
+  "homepage": "https://bubbly-vibrancy-production-168d.up.railway.app",
+  "icon": "icon.png",
+  "server": {
+    "type": "node",
+    "entry_point": "server/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/server/index.js"],
+      "env": {
+        "FLORET_BASE_URL": "${user_config.base_url}",
+        "FLORET_API_KEY": "${user_config.api_key}"
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "get_transcript",
+      "description": "Fetch a YouTube video transcript as a reflowed readable script"
+    },
+    {
+      "name": "analyze_video",
+      "description": "Analyze a YouTube video script for format, angle, storytelling, hooks, and visuals"
+    }
+  ],
+  "keywords": [
+    "youtube",
+    "transcript",
+    "script",
+    "hooks",
+    "analysis",
+    "floret"
+  ],
+  "license": "MIT",
+  "user_config": {
+    "base_url": {
+      "type": "string",
+      "title": "Floret API base URL",
+      "description": "Hosted Floret backend (no trailing slash).",
+      "default": "https://bubbly-vibrancy-production-168d.up.railway.app",
+      "required": true
+    },
+    "api_key": {
+      "type": "string",
+      "title": "API key (optional)",
+      "description": "Bearer token if your Floret deploy requires Authorization (MCP_API_KEY). Leave empty for public REST.",
+      "sensitive": true,
+      "required": false
+    }
+  },
+  "compatibility": {
+    "claude_desktop": ">=0.10.0",
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": {
+      "node": ">=18.0.0"
+    }
+  },
+  "privacy_policies": []
+}

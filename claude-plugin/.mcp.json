@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "floret": {
+      "type": "http",
+      "url": "https://bubbly-vibrancy-production-168d.up.railway.app/mcp"
+    }
+  }
+}

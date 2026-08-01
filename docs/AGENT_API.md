@@ -342,6 +342,28 @@ claude mcp add --transport http floret https://<your-host>/mcp \
 
 Add a remote MCP server pointing at `https://<your-host>/mcp` (same URL). If `MCP_API_KEY` is set, configure the `Authorization: Bearer …` header in MCP settings.
 
+### Claude plugin (Plugins / Cowork upload — `.zip`)
+
+The **Plugins → Upload plugin** UI only accepts `.zip` / `.plugin`, not `.mcpb`.
+
+Package in [`claude-plugin/`](../claude-plugin/): remote HTTP MCP → `https://bubbly-vibrancy-production-168d.up.railway.app/mcp`.
+
+```bash
+npm run plugin:pack
+# → claude-plugin/floret.zip  (and floret.plugin)
+```
+
+Install: Claude → **Plugins** → **Add** → **Upload plugin** → choose **`floret.zip`**.
+
+### Claude Desktop extension (`.mcpb` — different UI)
+
+For **Settings → Extensions** (Desktop Extensions), use the `.mcpb` bundle in [`desktop-extension/`](../desktop-extension/).
+
+```bash
+npm run mcpb:pack
+# → desktop-extension/floret-1.0.0.mcpb
+```
+
 ---
 
 ## Source map (for agents editing Floret itself)

@@ -16,6 +16,7 @@ RUN addgroup -S floret && adduser -S floret -G floret
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 COPY --from=build /app/dist ./dist
+COPY --from=build /app/public ./public
 RUN chown -R floret:floret /app
 USER floret
 EXPOSE 3000

@@ -1,0 +1,12 @@
+{
+  "name": "floret-desktop",
+  "version": "1.0.0",
+  "description": "Floret Claude Desktop extension — proxies transcript and analyze tools to the hosted Floret API",
+  "type": "module",
+  "main": "server/index.js",
+  "license": "MIT",
+  "private": true,
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1"
+  }
+}
