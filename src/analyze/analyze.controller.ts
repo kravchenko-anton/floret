@@ -18,9 +18,10 @@ export class AnalyzeController {
 
   @Post()
   @ApiOperation({
-    summary: 'Analyze a YouTube transcript for hooks, CTAs, and rehooks',
+    summary:
+      'Analyze a YouTube script for format, angle, storytelling, hook, and visuals',
     description:
-      'Fetches the transcript via Apify, runs Alibaba Model Studio (Qwen) analysis, and caches the result by videoId.',
+      'Loads the reflowed script (via /transcripts pipeline if needed), runs a structured Alibaba Model Studio (Qwen) analysis, and caches the result by videoId.',
   })
   @ApiOkResponse({ type: AnalyzeResponseDto })
   @ApiUnauthorizedResponse({
@@ -30,7 +31,8 @@ export class AnalyzeController {
     description: 'Invalid video ID or AI returned invalid analysis JSON',
   })
   @ApiServiceUnavailableResponse({
-    description: 'Transcript unavailable (Apify) or Alibaba Model Studio unavailable',
+    description:
+      'Transcript unavailable (Apify) or Alibaba Model Studio unavailable',
   })
   analyze(@Body() body: AnalyzeRequestDto): Promise<AnalyzeResponseDto> {
     return this.analyzeService.analyze(body.videoId);

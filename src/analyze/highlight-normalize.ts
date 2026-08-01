@@ -1,5 +1,13 @@
-import type { AnalysisHighlight, HighlightType } from '../db/schema';
-import { isChapterHeaderLine } from './script-format';
+import { isChapterHeaderLine } from './script-format'
+
+type HighlightType = 'hook' | 'cta' | 'rehook';
+
+type AnalysisHighlight = {
+  type: HighlightType;
+  start: number;
+  end: number;
+  quote: string;
+};
 
 const WORD_CHAR = /[A-Za-z0-9\u00C0-\u024F']/;
 
@@ -16,17 +24,14 @@ export function snapToWordBounds(
   let e = Math.max(0, Math.min(end, text.length));
   if (s >= e) return null;
 
-  // Expand left if we started mid-word.
   if (isWordChar(text[s]) && s > 0 && isWordChar(text[s - 1])) {
     while (s > 0 && isWordChar(text[s - 1])) s -= 1;
   }
 
-  // Expand right if we ended mid-word.
   if (e > 0 && isWordChar(text[e - 1]) && isWordChar(text[e])) {
     while (e < text.length && isWordChar(text[e])) e += 1;
   }
 
-  // Trim leading/trailing whitespace (keep newlines outside highlight).
   while (s < e && /\s/.test(text[s]!)) s += 1;
   while (e > s && /\s/.test(text[e - 1]!)) e -= 1;
 

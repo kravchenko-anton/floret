@@ -5,6 +5,7 @@ import { LoggerModule } from 'nestjs-pino';
 import { AnalyzeModule } from './analyze/analyze.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { McpModule } from './mcp/mcp.module';
 import { TranscriptModule } from './transcript/transcript.module';
 import { VoteModule } from './vote/vote.module';
 
@@ -42,6 +43,7 @@ const isProd = process.env.NODE_ENV === 'production';
     TranscriptModule,
     AnalyzeModule,
     VoteModule,
+    McpModule,
   ],
   controllers: [AppController],
   providers: [

@@ -8,5 +8,6 @@ import { AnalyzeService } from './analyze.service';
   imports: [TranscriptModule, AiModule],
   controllers: [AnalyzeController],
   providers: [AnalyzeService],
+  exports: [AnalyzeService],
 })
 export class AnalyzeModule {}

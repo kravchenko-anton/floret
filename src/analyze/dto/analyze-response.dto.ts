@@ -1,43 +1,78 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-export class AnalysisHighlightDto {
+export class AnalyzeFormatDto {
   @ApiProperty({
-    enum: ['hook', 'cta', 'rehook'],
-    example: 'hook',
+    enum: ['educational', 'entertainment', 'mixed'],
+    example: 'educational',
   })
-  type: 'hook' | 'cta' | 'rehook';
+  category!: 'educational' | 'entertainment' | 'mixed';
+
+  @ApiProperty({ example: 'explainer with personality' })
+  flavor!: string;
+}
+
+export class AnalyzeTopicAndAngleDto {
+  @ApiProperty({ example: 'How Shazam identifies songs in seconds' })
+  topic!: string;
 
   @ApiProperty({
-    example: 0,
-    description: 'Inclusive start character offset in text',
+    example: 'It is not magic — it is a fingerprint of peaks in the audio',
   })
-  start: number;
+  angle!: string;
 
   @ApiProperty({
-    example: 42,
-    description: 'Exclusive end character offset in text',
+    example: 'People think song ID needs the full track or a huge database search',
   })
-  end: number;
+  commonBeliefChallenge!: string;
 
-  @ApiProperty({ example: 'Hey, stop scrolling for a second' })
-  quote: string;
+  @ApiProperty({
+    example: 'Only a tiny constellation of frequency peaks is enough to match',
+  })
+  constrainReality!: string;
+}
+
+export class AnalyzeKeyMoveDto {
+  @ApiProperty({ example: 'cold open' })
+  name!: string;
+
+  @ApiProperty({
+    example: 'Starts with the mystery of recognizing any song in under a second',
+  })
+  description!: string;
+}
+
+export class AnalyzeStorytellingStructureDto {
+  @ApiProperty({ type: [AnalyzeKeyMoveDto] })
+  keyMoves!: AnalyzeKeyMoveDto[];
+}
+
+export class AnalyzeVisualLayoutDto {
+  @ApiProperty({ example: 'talking-head + b-roll' })
+  category!: string;
+
+  @ApiProperty({ example: 'fast cuts, on-screen diagrams, high energy' })
+  style!: string;
 }
 
 export class AnalyzeResponseDto {
+  @ApiProperty({ example: 'dQw4w9WgXcQ' })
+  videoId!: string;
+
+  @ApiProperty({ type: AnalyzeFormatDto })
+  format!: AnalyzeFormatDto;
+
+  @ApiProperty({ type: AnalyzeTopicAndAngleDto })
+  topicAndAngle!: AnalyzeTopicAndAngleDto;
+
+  @ApiProperty({ type: AnalyzeStorytellingStructureDto })
+  storytellingStructure!: AnalyzeStorytellingStructureDto;
+
   @ApiProperty({
     example:
-      '<b>0:00  Intro</b>\n\nThis is Shazam algorithm explained in 90 seconds.\nIt all starts when you press this single button.',
-    description:
-      'Transcript as a script: one thought/sentence per line (AI-reflowed). When the video has chapters/timestamps, sections are prefixed with `<b>MM:SS  Title</b>` (bold tags, timestamp, two spaces, title). Chapter headers are omitted when the video has no timestamps.',
+      'Opens with a curiosity gap about instantaneous recognition, then proves the mechanism.',
   })
-  text: string;
+  hookAnalysis!: string;
 
-  @ApiProperty({ type: [AnalysisHighlightDto] })
-  highlights: AnalysisHighlightDto[];
-
-  @ApiProperty({
-    example:
-      'Strong opening hook that creates curiosity, followed by a mid-video rehook and a clear end CTA.',
-  })
-  analysis: string;
+  @ApiProperty({ type: AnalyzeVisualLayoutDto })
+  visualLayout!: AnalyzeVisualLayoutDto;
 }

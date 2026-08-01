@@ -19,9 +19,9 @@ export class TranscriptController {
 
   @Get(':videoId')
   @ApiOperation({
-    summary: 'Fetch a YouTube video transcript',
+    summary: 'Fetch a YouTube video transcript as a formatted script',
     description:
-      'Returns caption segments and full text via Apify YouTube transcript actor. Results are cached by video ID.',
+      'Fetches captions via Apify, reflows them into a readable script with AI (chapter headers when available), and caches segments + script by video ID.',
   })
   @ApiParam({
     name: 'videoId',

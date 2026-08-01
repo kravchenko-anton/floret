@@ -1,7 +1,8 @@
 export {
   analyses,
-  type AnalysisHighlight,
-  type HighlightType,
+  type AnalysisKeyMove,
+  type AnalysisResult,
+  type FormatCategory,
 } from './analyses';
 export { transcripts, type TranscriptSegment } from './transcripts';
 export { videos } from './videos';
@@ -10,4 +11,3 @@ export {
   votes,
   type VotePurpose,
 } from './votes';
-

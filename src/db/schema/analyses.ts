@@ -1,20 +1,37 @@
 import { jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
-export type HighlightType = 'hook' | 'cta' | 'rehook';
+export type FormatCategory = 'educational' | 'entertainment' | 'mixed';
 
-export type AnalysisHighlight = {
-  type: HighlightType;
-  start: number;
-  end: number;
-  quote: string;
+export type AnalysisKeyMove = {
+  name: string;
+  description: string;
+};
+
+export type AnalysisResult = {
+  format: {
+    category: FormatCategory;
+    flavor: string;
+  };
+  topicAndAngle: {
+    topic: string;
+    angle: string;
+    commonBeliefChallenge: string;
+    constrainReality: string;
+  };
+  storytellingStructure: {
+    keyMoves: AnalysisKeyMove[];
+  };
+  hookAnalysis: string;
+  visualLayout: {
+    category: string;
+    style: string;
+  };
 };
 
 export const analyses = pgTable('analyses', {
   id: uuid('id').defaultRandom().primaryKey(),
   youtubeId: text('youtube_id').notNull().unique(),
-  text: text('text').notNull(),
-  highlights: jsonb('highlights').$type<AnalysisHighlight[]>().notNull(),
-  analysis: text('analysis').notNull(),
+  result: jsonb('result').$type<AnalysisResult>().notNull(),
   model: text('model').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true })
     .defaultNow()

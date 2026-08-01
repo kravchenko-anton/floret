@@ -10,6 +10,7 @@ import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { cleanCaptionText } from '../analyze/script-format';
 import { db } from '../db';
 import { transcripts, type TranscriptSegment } from '../db/schema';
+import { ScriptReflowService } from './script-reflow';
 
 export type TranscriptResult = {
   videoId: string;
@@ -42,6 +43,7 @@ export class TranscriptService {
   private client: ApifyClient | null = null;
 
   constructor(
+    private readonly scriptReflowService: ScriptReflowService,
     @InjectPinoLogger(TranscriptService.name)
     private readonly logger: PinoLogger,
   ) {}
@@ -54,7 +56,7 @@ export class TranscriptService {
     const language = lang?.trim() || 'en';
 
     const cached = await this.readCache(videoId, language);
-    if (cached) {
+    if (cached && this.scriptReflowService.isUsableScript(cached.text)) {
       this.logger.info(
         { videoId, lang: language, segments: cached.segments.length },
         'Transcript cache hit',
@@ -62,30 +64,64 @@ export class TranscriptService {
       return cached;
     }
 
-    if (!this.token) {
-      this.logger.error('APIFY_TOKEN is missing');
-      throw new ServiceUnavailableException('APIFY_TOKEN is required');
+    let segments: TranscriptSegment[];
+    let resultLanguage = language;
+
+    if (cached?.segments.length) {
+      this.logger.info(
+        {
+          videoId,
+          reason: cached.text ? 'stale-script' : 'missing-script',
+          segments: cached.segments.length,
+        },
+        'Transcript segments cached; reflowing script',
+      );
+      segments = cached.segments;
+      resultLanguage = cached.language ?? language;
+    } else {
+      if (!this.token) {
+        this.logger.error('APIFY_TOKEN is missing');
+        throw new ServiceUnavailableException('APIFY_TOKEN is required');
+      }
+
+      this.logger.info(
+        { videoId, lang: language, actorId: this.actorId },
+        'Fetching transcript via Apify',
+      );
+
+      segments = await this.fetchFromApify(videoId, language);
     }
 
-    this.logger.info(
-      { videoId, lang: language, actorId: this.actorId },
-      'Fetching transcript via Apify',
-    );
-
-    const segments = await this.fetchFromApify(videoId, language);
-    const result: TranscriptResult = {
+    const raw: TranscriptResult = {
       videoId,
-      language,
+      language: resultLanguage,
       segments,
       text: segments.map((s) => s.text).join(' '),
     };
 
+    const scriptText = await this.scriptReflowService.buildScript(raw);
+    const result: TranscriptResult = {
+      ...raw,
+      text: scriptText,
+    };
+
     await this.writeCache(result);
     this.logger.info(
-      { videoId, language, segments: segments.length },
-      'Transcript fetched via Apify',
+      {
+        videoId,
+        language: resultLanguage,
+        segments: segments.length,
+        scriptChars: scriptText.length,
+      },
+      'Transcript script ready',
     );
     return result;
+  }
+
+  /** Ensures a reflowed script exists (used by analyze). */
+  async getScript(videoIdOrUrl: string, lang?: string): Promise<string> {
+    const result = await this.fetch(videoIdOrUrl, lang);
+    return result.text;
   }
 
   extractVideoId(input: string): string {
@@ -292,16 +328,20 @@ export class TranscriptService {
         return null;
       }
 
+      const scriptText = row.scriptText?.trim() || '';
       const result: TranscriptResult = {
         videoId,
         language: row.language ?? undefined,
         segments,
-        text: segments.map((s) => s.text).join(' '),
+        text: scriptText,
       };
 
       // Rewrite dirty cached captions so later reads stay clean.
       if (row.segments.some((s) => s.text !== cleanCaptionText(s.text))) {
-        void this.writeCache(result);
+        void this.writeCache({
+          ...result,
+          text: scriptText || segments.map((s) => s.text).join(' '),
+        });
       }
 
       return result;
@@ -326,12 +366,14 @@ export class TranscriptService {
           youtubeId: result.videoId,
           language: result.language ?? null,
           segments: result.segments,
+          scriptText: result.text,
         })
         .onConflictDoUpdate({
           target: transcripts.youtubeId,
           set: {
             language: result.language ?? null,
             segments: result.segments,
+            scriptText: result.text,
           },
         });
     } catch (error) {

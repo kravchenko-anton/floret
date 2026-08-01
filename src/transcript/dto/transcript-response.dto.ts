@@ -12,8 +12,10 @@ export class TranscriptResponseDto {
   segments: TranscriptSegmentDto[];
 
   @ApiProperty({
-    example: 'Hey there How are you',
-    description: 'Full transcript text joined from segments',
+    example:
+      '<b>0:00  Intro</b>\n\nThis is Shazam algorithm explained in 90 seconds.\nIt all starts when you press this single button.',
+    description:
+      'AI-reflowed script: one thought/sentence per line. When the video has chapters/timestamps, sections are prefixed with `<b>MM:SS  Title</b>`.',
   })
   text: string;
 }

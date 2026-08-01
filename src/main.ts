@@ -6,6 +6,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
 import { apiReference } from '@scalar/nestjs-api-reference'
 import { Logger } from 'nestjs-pino'
 import { AppModule } from './app.module'
+import { mcp } from './mcp/mcp.strategy'
 
 function corsOrigins(): string[] {
   const fromEnv = (process.env.CORS_ORIGINS ?? '')
@@ -27,10 +28,18 @@ async function bootstrap() {
   app.getHttpAdapter().getInstance().set('trust proxy', 1);
 
   // Browser → Floret (esp. POST /votes) so anti-spam uses the visitor IP, not a BFF.
+  // MCP clients may send Authorization + DELETE for session teardown.
   app.enableCors({
     origin: corsOrigins(),
-    methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Accept'],
+    methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type',
+      'Accept',
+      'Authorization',
+      'Mcp-Session-Id',
+      'Last-Event-ID',
+    ],
+    exposedHeaders: ['Mcp-Session-Id'],
     maxAge: 86400,
   });
 
@@ -55,8 +64,12 @@ async function bootstrap() {
     );
   }
 
+  mcp.setHttpAdapter(app.getHttpAdapter());
+  app.connectMicroservice({ strategy: mcp });
+  await app.startAllMicroservices();
+
   const port = process.env.PORT ?? 3000;
   await app.listen(port);
-  app.get(Logger).log(`Floret listening on port ${port}`);
+  app.get(Logger).log(`Floret listening on port ${port} (MCP at /mcp)`);
 }
 bootstrap();

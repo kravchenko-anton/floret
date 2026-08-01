@@ -12,6 +12,7 @@ export const transcripts = pgTable('transcripts', {
   youtubeId: text('youtube_id').notNull().unique(),
   language: text('language'),
   segments: jsonb('segments').$type<TranscriptSegment[]>().notNull(),
+  scriptText: text('script_text'),
   createdAt: timestamp('created_at', { withTimezone: true })
     .defaultNow()
     .notNull(),

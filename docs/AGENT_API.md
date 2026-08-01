@@ -19,6 +19,7 @@ Base URL: use the deployed host (or `http://localhost:3000` locally). All paths 
 | `POST` | `/analyze` | Analyze transcript for hooks / CTAs / rehooks (cached) |
 | `POST` | `/votes` | Cast one interest vote for an upcoming feature |
 | `GET` | `/votes` | Read vote totals per feature |
+| `POST` / `GET` / `DELETE` | `/mcp` | Remote MCP (Streamable HTTP) for Claude, Cursor, etc. |
 
 Ignore `GET /` and `GET /debug-sentry` — internal / health noise, not for product clients.
 
@@ -291,6 +292,58 @@ If the browser shows “No Access-Control-Allow-Origin”, add the frontend orig
 
 ---
 
+## 4. MCP / Claude connector
+
+Floret exposes a **remote MCP** endpoint on the same Nest process so Claude, Claude Code, Cursor, and similar clients can call tools without a separate server.
+
+**URL:** `https://<your-host>/mcp` (local: `http://localhost:3000/mcp`)
+
+Transport: Streamable HTTP (stateless). REST endpoints above stay unchanged.
+
+### Tools
+
+| Tool | Arguments | Backing API |
+|------|-----------|-------------|
+| `get_transcript` | `videoId` (required), `lang` (optional ISO 639-1) | Same as `GET /transcripts/:videoId` |
+| `analyze_video` | `videoId` (required) | Same as `POST /analyze` |
+
+Tool results are JSON text in the MCP `content` payload (same shapes as the REST responses).
+
+Votes are **not** exposed over MCP (IP anti-spam does not work for server-side agent traffic).
+
+### Auth
+
+- If `MCP_API_KEY` is **unset**: `/mcp` is open (same as public REST today).
+- If `MCP_API_KEY` is **set**: clients must send `Authorization: Bearer <MCP_API_KEY>` on every MCP request.
+
+### Connect from Claude (custom connector)
+
+1. Deploy Floret with a public HTTPS URL.
+2. Claude → **Settings → Connectors → Add custom connector**.
+3. Paste `https://<your-host>/mcp`.
+4. If you set `MCP_API_KEY`, add a request header `Authorization` = `Bearer <your-key>` (when that UI option is available).
+
+Then ask e.g. “Analyze this YouTube video: …” — Claude should call `analyze_video` / `get_transcript`.
+
+### Connect from Claude Code
+
+```bash
+claude mcp add --transport http floret https://<your-host>/mcp
+```
+
+With a key (headers support varies by client version):
+
+```bash
+claude mcp add --transport http floret https://<your-host>/mcp \
+  --header "Authorization: Bearer $MCP_API_KEY"
+```
+
+### Connect from Cursor
+
+Add a remote MCP server pointing at `https://<your-host>/mcp` (same URL). If `MCP_API_KEY` is set, configure the `Authorization: Bearer …` header in MCP settings.
+
+---
+
 ## Source map (for agents editing Floret itself)
 
 | Area | Path |
@@ -301,6 +354,7 @@ If the browser shows “No Access-Control-Allow-Origin”, add the frontend orig
 | Migration | `drizzle/0002_remarkable_the_leader.sql` |
 | Analyze | `src/analyze/` |
 | Transcripts | `src/transcript/` |
+| MCP | `src/mcp/` |
 | App wiring | `src/app.module.ts`, `src/main.ts` |
 
-Env template: `.env.example` (`DATABASE_URL`, `DASHSCOPE_*`, `APIFY_*`, `CORS_ORIGINS`, optional `SENTRY_DSN`).
+Env template: `.env.example` (`DATABASE_URL`, `DASHSCOPE_*`, `APIFY_*`, `CORS_ORIGINS`, optional `SENTRY_DSN`, optional `MCP_API_KEY`).
